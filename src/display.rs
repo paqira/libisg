@@ -14,7 +14,10 @@ impl<'a> Display for ISG<'a> {
                     } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
                     Angle::Deg { degree } => match $unit {
                         CoordUnits::Deg => format!("{:11.6}", degree),
-                        CoordUnits::DMS | CoordUnits::Meters | CoordUnits::Feet => {
+                        CoordUnits::DMS => {
+                            format!("{:11.6}", degree)
+                        }
+                        CoordUnits::Meters | CoordUnits::Feet => {
                             format!("{:11.3}", degree)
                         }
                     },
@@ -230,7 +233,7 @@ delta east      = ---\n",
         f.write_str("nodata         = ")?;
         match self.header.nodata.as_ref() {
             None => f.write_str("---")?,
-            Some(v) => write!(f, "{:10.4}", v)?,
+            Some(v) => write!(f, " {:10.4}", v)?,
         }
         f.write_char('\n')?;
 
