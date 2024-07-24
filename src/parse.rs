@@ -65,6 +65,18 @@ impl FromStr for DataOrdering {
     }
 }
 
+impl FromStr for TideSystem {
+    type Err = ParseValueError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "tide-free" => Ok(Self::TideFree),
+            "mean-tide" => Ok(Self::MeanTide),
+            "zero-tide" => Ok(Self::ZeroTide),
+            _ => Err(Self::Err::new(s)),
+        }
+    }
+}
+
 impl FromStr for CoordType {
     type Err = ParseValueError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -89,17 +101,6 @@ impl FromStr for CoordUnits {
     }
 }
 
-impl FromStr for TideSystem {
-    type Err = ParseValueError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "tide-free" => Ok(Self::TideFree),
-            "mean-tide" => Ok(Self::MeanTide),
-            "zero-tide" => Ok(Self::ZeroTide),
-            _ => Err(Self::Err::new(s)),
-        }
-    }
-}
 
 impl FromStr for Angle {
     type Err = ParseValueError;
