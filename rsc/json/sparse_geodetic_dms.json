@@ -1,0 +1,61 @@
+{
+  "comment": "",
+  "header": {
+    "model_name": "GSIGEO2024bata",
+    "model_year": "2024",
+    "model_type": "gravimetric",
+    "data_type": "geoid",
+    "data_units": "meters",
+    "data_format": "grid",
+    "data_ordering": "N-to-S, W-to-E",
+    "ref_ellipsoid": "GRS80",
+    "ref_frame": null,
+    "height_datum": null,
+    "tide_system": null,
+    "coord_type": "geodetic",
+    "coord_units": "dms",
+    "map_projection": null,
+    "EPSG_code": "6668",
+    "lat_min": {
+      "degree": 15,
+      "minutes": 0,
+      "second": 0
+    },
+    "lat_max": {
+      "degree": 50,
+      "minutes": 0,
+      "second": 0
+    },
+    "lon_min": {
+      "degree": 120,
+      "minutes": 0,
+      "second": 0
+    },
+    "lon_max": {
+      "degree": 160,
+      "minutes": 0,
+      "second": 0
+    },
+    "nrows": 2,
+    "ncols": 3,
+    "nodata": -9999.0,
+    "creation_date": {
+      "year": 2024,
+      "month": 3,
+      "day": 27
+    },
+    "ISG_format": "2.0"
+  },
+  "data": [
+    [
+      -3.7899,
+      -3.7165,
+      -3.6472
+    ],
+    [
+      2.6795,
+      2.7263,
+      2.8298
+    ]
+  ]
+}

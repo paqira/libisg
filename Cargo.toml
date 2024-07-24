@@ -1,0 +1,23 @@
+[package]
+name = "libisg"
+version = "0.1.0"
+edition = "2021"
+authors = ["Kentaro Tatsumi <paqira.2019@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/paqira/libsig"
+description = "Libraly reading/writing ISG 2.0 format file"
+keywords = ["GIS", "SIG"]
+readme = "README.md"
+exclude = [".*"]
+categories = ["science::geo"]
+
+[[test]]
+name = "test"
+path = "test/test.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] , optional = true}
+
+[dev-dependencies]
+serde_json = { version = "1" }
+serde_test = { version = "1" }
