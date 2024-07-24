@@ -1,6 +1,6 @@
 # libisg
 
-Library reading/writing the ISG 2.0-format  file.
+Library reading/writing the ISG 2.0-format file.
 
 ```rust
 use std::fs;
