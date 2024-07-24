@@ -101,7 +101,6 @@ impl FromStr for CoordUnits {
     }
 }
 
-
 impl FromStr for Angle {
     type Err = ParseValueError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
