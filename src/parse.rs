@@ -415,48 +415,48 @@ impl<'a> HeaderStore<'a> {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::ModelType,
                                 self.model_type.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             data_type: match self.data_type.as_ref() {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::DataType,
                                 self.data_type.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             data_units: match self.data_units.as_ref() {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::DataUnits,
                                 self.data_units.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             data_format,
@@ -464,16 +464,16 @@ impl<'a> HeaderStore<'a> {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::DataOrdering,
                                 self.data_ordering.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             ref_ellipsoid: self.ref_ellipsoid.and_then(text),
@@ -483,16 +483,16 @@ impl<'a> HeaderStore<'a> {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::TideSystem,
                                 self.tide_system.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             coord_type,
@@ -532,27 +532,30 @@ impl<'a> HeaderStore<'a> {
                 .as_ref()
             {
                 "---" => None,
-                s => Some(s.parse().map_err(|_| {
-                    ParseError::invalid_header_value(
-                        HeaderField::NoData,
-                        &self.nodata.expect("already checked"),
-                    )
-                })?),
+                s => s
+                    .parse()
+                    .map_err(|_| {
+                        ParseError::invalid_header_value(
+                            HeaderField::NoData,
+                            &self.nodata.expect("already checked"),
+                        )
+                    })
+                    .map(Some)?,
             },
             creation_date: match self.creation_date.as_ref() {
                 None => None,
                 Some(token) => match token.value.as_ref() {
                     "---" => None,
-                    s => {
-                        let value = s.parse().map_err(|e| {
+                    s => s
+                        .parse()
+                        .map_err(|e| {
                             ParseError::from_parse_value_err(
                                 e,
                                 HeaderField::CreationDate,
                                 self.creation_date.as_ref().unwrap(),
                             )
-                        })?;
-                        Some(value)
-                    }
+                        })
+                        .map(Some)?,
                 },
             },
             ISG_format,
