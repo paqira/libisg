@@ -563,6 +563,7 @@ impl<'a> HeaderStore<'a> {
     }
 }
 
+// mess...
 impl DataBounds {
     fn with_geodetic(
         header: &HeaderStore,
