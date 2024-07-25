@@ -271,7 +271,7 @@ EPSG code      : 7912
 lat min        =   39°50'00"
 lat max        =   41°10'00"
 lon min        =  119°50'00"
-east max        =  121°50'00"
+east max       =  121°50'00"
 delta lat      =    0°20'00"
 delta lon      =    0°20'00"
 nrows          =           4
@@ -283,7 +283,7 @@ end_of_head =================================================="##;
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected header key: `east max` with `coord type` is `geodetic` (line: 20, column: 19 to 30)"
+        "unexpected header key: `east max` with `coord type` is `geodetic` (line: 20)"
     );
 }
 

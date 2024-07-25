@@ -187,6 +187,7 @@ impl ParseError {
     ) -> Self {
         Self::with_span(
             ParseErrorKind::UnexpectedDataBounds { key, coord_type },
+            // placeholder
             token.span.clone(),
             token.lineno,
         )
@@ -255,6 +256,7 @@ impl Display for ParseError {
                 ..
             } => Display::fmt(&self.kind, f),
             ParseErrorKind::MissingSeparator
+            | ParseErrorKind::UnexpectedDataBounds { .. }
             | ParseErrorKind::LongData {
                 direction: DataDirection::Column,
                 ..
@@ -268,7 +270,6 @@ impl Display for ParseError {
             ParseErrorKind::UnexpectedHeaderKey { .. }
             | ParseErrorKind::DuplicatedHeaderKey { .. }
             | ParseErrorKind::UnexpectedHeaderValue { .. }
-            | ParseErrorKind::UnexpectedDataBounds { .. }
             | ParseErrorKind::UnexpectedData { .. } => {
                 write!(
                     f,
