@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::error::*;
-use crate::token::{Token, TokenKind, Tokenizer};
+use crate::token::{Token, Tokenizer};
 use crate::*;
 
 impl FromStr for ModelType {
@@ -978,31 +978,72 @@ impl DataBounds {
     }
 }
 
-fn parse_data_grid(tokenizer: &mut Tokenizer, header: &Header) -> Result<Data, ParseError> {
+fn parse_data_grid(
+    tokenizer: &mut Tokenizer,
+    header: &Header,
+    lineno: usize,
+) -> Result<Data, ParseError> {
+    let mut rno = 0;
+
     let mut data = Vec::with_capacity(header.nrows);
     while let Some(tokens) = tokenizer.tokenize_data() {
+        if rno >= header.nrows {
+            return Err(ParseError::long_data(
+                DataDirection::Row,
+                header.nrows,
+                lineno + rno + 1,
+            ));
+        }
+
+        let mut cno = 0;
+
         let mut row = Vec::with_capacity(header.ncols);
         for token in tokens {
-            match token.kind {
-                TokenKind::Datum => {
-                    let a: f64 = token
-                        .value
-                        .as_ref()
-                        .trim()
-                        .parse()
-                        .map_err(|_| ParseError::invalid_data(&token))?;
-
-                    if header.nodata.as_ref().map_or(false, |m| m == &a) {
-                        row.push(None)
-                    } else {
-                        row.push(Some(a))
-                    }
-                }
-                _ => unreachable!(),
+            if cno >= header.ncols {
+                return Err(ParseError::long_data(
+                    DataDirection::Column,
+                    header.ncols,
+                    lineno + rno + 1,
+                ));
             }
+
+            let a: f64 = token
+                .value
+                .as_ref()
+                .trim()
+                .parse()
+                .map_err(|_| ParseError::invalid_data(&token))?;
+
+            if header.nodata.as_ref().map_or(false, |m| m == &a) {
+                row.push(None)
+            } else {
+                row.push(Some(a))
+            }
+
+            cno += 1;
         }
+
+        if cno != header.ncols {
+            return Err(ParseError::short_data(
+                DataDirection::Column,
+                header.ncols,
+                lineno + rno + 1,
+            ));
+        }
+
         row.shrink_to_fit();
-        data.push(row)
+
+        data.push(row);
+
+        rno += 1;
+    }
+
+    if rno != header.nrows {
+        return Err(ParseError::short_data(
+            DataDirection::Row,
+            header.nrows,
+            lineno + rno + 1,
+        ));
     }
 
     data.shrink_to_fit();
@@ -1021,12 +1062,24 @@ fn parse_data_sparse(
         }
     };
 
+    let mut rno = 0;
+
     let mut data = Vec::with_capacity(header.nrows);
-    let mut lno = lineno;
     while let Some(mut tokens) = tokenizer.tokenize_data() {
-        lno += 1;
+        if rno >= header.nrows {
+            return Err(ParseError::long_data(
+                DataDirection::Row,
+                header.nrows,
+                lineno + rno + 1,
+            ));
+        }
+
         let a = match tokens.next() {
-            None => Err(ParseError::missing_data(DataColumnKind::First, lno)),
+            None => Err(ParseError::short_data(
+                DataDirection::Column,
+                header.ncols,
+                lineno + rno + 1,
+            )),
             Some(token) => match token.value.as_ref().trim().parse() {
                 Ok(r) if is_valid_angle(&r) => Ok(r),
                 _ => Err(ParseError::invalid_data(&token)),
@@ -1034,7 +1087,11 @@ fn parse_data_sparse(
         }?;
 
         let b = match tokens.next() {
-            None => Err(ParseError::missing_data(DataColumnKind::Second, lno)),
+            None => Err(ParseError::short_data(
+                DataDirection::Column,
+                header.ncols,
+                lineno + rno + 1,
+            )),
             Some(token) => match token.value.as_ref().trim().parse() {
                 Ok(r) if is_valid_angle(&r) => Ok(r),
                 _ => Err(ParseError::invalid_data(&token)),
@@ -1042,7 +1099,11 @@ fn parse_data_sparse(
         }?;
 
         let c = match tokens.next() {
-            None => Err(ParseError::missing_data(DataColumnKind::Third, lno)),
+            None => Err(ParseError::short_data(
+                DataDirection::Column,
+                header.ncols,
+                lineno + rno + 1,
+            )),
             Some(token) => token
                 .value
                 .as_ref()
@@ -1052,10 +1113,24 @@ fn parse_data_sparse(
         }?;
 
         if tokens.next().is_some() {
-            return Err(ParseError::invalid_sparse_data(lno));
+            return Err(ParseError::long_data(
+                DataDirection::Column,
+                header.ncols,
+                lineno + rno + 1,
+            ));
         }
 
         data.push((a, b, c));
+
+        rno += 1;
+    }
+
+    if rno != header.nrows {
+        return Err(ParseError::short_data(
+            DataDirection::Row,
+            header.nrows,
+            lineno + rno + 1,
+        ));
     }
 
     data.shrink_to_fit();
@@ -1074,7 +1149,7 @@ pub fn from_str(s: &str) -> Result<ISG, ParseError> {
     let end_of_head = tokenizer.tokenize_end_of_header()?;
 
     let data = match header.data_format {
-        DataFormat::Grid => parse_data_grid(&mut tokenizer, &header),
+        DataFormat::Grid => parse_data_grid(&mut tokenizer, &header, end_of_head.lineno),
         DataFormat::Sparse => parse_data_sparse(&mut tokenizer, &header, end_of_head.lineno),
     }?;
 

@@ -40,7 +40,8 @@ impl ParseError {
             self.kind,
             ParseErrorKind::UnexpectedData { .. }
                 | ParseErrorKind::MissingData { .. }
-                | ParseErrorKind::UnexpectedSparseData
+                | ParseErrorKind::LongData { .. }
+                | ParseErrorKind::ShortData { .. }
         )
     }
 
@@ -93,7 +94,14 @@ pub(crate) enum ParseErrorKind {
     MissingData {
         kind: DataColumnKind,
     },
-    UnexpectedSparseData,
+    ShortData {
+        direction: DataDirection,
+        expected: usize,
+    },
+    LongData {
+        direction: DataDirection,
+        expected: usize,
+    },
 }
 
 impl ParseError {
@@ -213,8 +221,27 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn invalid_sparse_data(lineno: usize) -> Self {
-        Self::with_span(ParseErrorKind::UnexpectedSparseData, 0..0, lineno)
+    pub(crate) fn short_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
+        Self::with_span(
+            ParseErrorKind::ShortData {
+                direction,
+                expected,
+            },
+            0..0,
+            lineno,
+        )
+    }
+
+    #[cold]
+    pub(crate) fn long_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
+        Self::with_span(
+            ParseErrorKind::LongData {
+                direction,
+                expected,
+            },
+            0..0,
+            lineno,
+        )
     }
 }
 
@@ -235,10 +262,25 @@ impl Display for ParseError {
         match &self.kind {
             ParseErrorKind::MissingBeginOfHead
             | ParseErrorKind::MissingEndOfHead
-            | ParseErrorKind::MissingHeaderKey { .. } => Display::fmt(&self.kind, f),
+            | ParseErrorKind::MissingHeaderKey { .. }
+            | ParseErrorKind::LongData {
+                direction: DataDirection::Row,
+                ..
+            }
+            | ParseErrorKind::ShortData {
+                direction: DataDirection::Row,
+                ..
+            } => Display::fmt(&self.kind, f),
             ParseErrorKind::MissingSeparator
             | ParseErrorKind::MissingData { .. }
-            | ParseErrorKind::UnexpectedSparseData => {
+            | ParseErrorKind::LongData {
+                direction: DataDirection::Column,
+                ..
+            }
+            | ParseErrorKind::ShortData {
+                direction: DataDirection::Column,
+                ..
+            } => {
                 write!(f, "{} (line: {})", self.kind, self.lineno.unwrap())
             }
             ParseErrorKind::UnexpectedHeaderKey { .. }
@@ -279,7 +321,24 @@ impl Display for ParseErrorKind {
             ),
             Self::UnexpectedData { value } => write!(f, "unexpected data: `{}`", value),
             Self::MissingData { kind } => write!(f, "missing {} column data", kind),
-            Self::UnexpectedSparseData => f.write_str("unexpected sparse data"),
+            Self::ShortData {
+                direction,
+                expected,
+            } => match direction {
+                DataDirection::Row => write!(f, "short data row, expected {} row(s)", expected),
+                DataDirection::Column => {
+                    write!(f, "short data column, expected {} column(s)", expected)
+                }
+            },
+            Self::LongData {
+                direction,
+                expected,
+            } => match direction {
+                DataDirection::Row => write!(f, "long data row, expected {} row(s)", expected),
+                DataDirection::Column => {
+                    write!(f, "long data column, expected {} column(s)", expected)
+                }
+            },
         }
     }
 }
@@ -299,6 +358,12 @@ impl Display for DataColumnKind {
             DataColumnKind::Third => f.write_str("third"),
         }
     }
+}
+
+#[derive(Debug)]
+pub(crate) enum DataDirection {
+    Row,
+    Column,
 }
 
 /// Error on parsing header value of ISG format

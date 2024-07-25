@@ -327,48 +327,7 @@ a
 }
 
 #[test]
-fn missing_data() {
-    let s = r##"begin_of_head ================================================
-model name     : EXAMPLE
-model year     : 2020
-model type     : gravimetric
-data type      : geoid
-data units     : meters
-data format    : sparse
-data ordering  : lat, lon, N
-ref ellipsoid  : GRS80
-ref frame      : ITRF2014
-height datum   : ---
-tide system    : mean-tide
-coord type     : geodetic
-coord units    : deg
-map projection : ---
-EPSG code      : 7912
-lat min        =   40.000000
-lat max        =   41.000000
-lon min        =  120.000000
-lon max        =  121.666667
-delta lat      = ---
-delta lon      = ---
-nrows          =          20
-ncols          =           3
-nodata         =  -9999.0000
-creation date  =  31/05/2020
-ISG format     =         2.0
-end_of_head ==================================================
-  40.000000  120.000000    30.1234
-  40.000000
-  40.000000  120.666667    32.3456
-"##;
-    let a = from_str(s);
-    assert_eq!(
-        a.unwrap_err().to_string(),
-        "missing second column data (line: 30)"
-    );
-}
-
-#[test]
-fn invalid_sparse_data() {
+fn long_data_column() {
     let s = r##"begin_of_head ================================================
 model name     : EXAMPLE
 model year     : 2020
@@ -404,6 +363,129 @@ end_of_head ==================================================
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected sparse data (line: 30)"
+        "long data column, expected 3 column(s) (line: 30)"
+    );
+}
+
+#[test]
+fn short_data_column() {
+    let s = r##"begin_of_head ================================================
+model name     : EXAMPLE
+model year     : 2020
+model type     : gravimetric
+data type      : geoid
+data units     : meters
+data format    : sparse
+data ordering  : lat, lon, N
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : deg
+map projection : ---
+EPSG code      : 7912
+lat min        =   40.000000
+lat max        =   41.000000
+lon min        =  120.000000
+lon max        =  121.666667
+delta lat      = ---
+delta lon      = ---
+nrows          =          20
+ncols          =           3
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head ==================================================
+  40.000000  120.000000    30.1234
+  40.000000
+  40.000000  120.666667    32.3456
+"##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "short data column, expected 3 column(s) (line: 30)"
+    );
+}
+
+#[test]
+fn long_data_row() {
+    let s = r##"begin_of_head ================================================
+model name     : EXAMPLE
+model year     : 2020
+model type     : gravimetric
+data type      : geoid
+data units     : meters
+data format    : sparse
+data ordering  : lat, lon, N
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : deg
+map projection : ---
+EPSG code      : 7912
+lat min        =   40.000000
+lat max        =   41.000000
+lon min        =  120.000000
+lon max        =  121.666667
+delta lat      = ---
+delta lon      = ---
+nrows          =           2
+ncols          =           3
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head ==================================================
+  40.000000  120.000000    30.1234
+  40.000000  120.000000    30.1234
+  40.000000  120.666667    32.3456
+"##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "long data row, expected 2 row(s)"
+    );
+}
+
+#[test]
+fn short_data_row() {
+    let s = r##"begin_of_head ================================================
+model name     : EXAMPLE
+model year     : 2020
+model type     : gravimetric
+data type      : geoid
+data units     : meters
+data format    : sparse
+data ordering  : lat, lon, N
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : deg
+map projection : ---
+EPSG code      : 7912
+lat min        =   40.000000
+lat max        =   41.000000
+lon min        =  120.000000
+lon max        =  121.666667
+delta lat      = ---
+delta lon      = ---
+nrows          =          20
+ncols          =           3
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head ==================================================
+  40.000000  120.000000    30.1234
+  40.000000  120.000000    30.1234
+  40.000000  120.666667    32.3456
+"##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "short data row, expected 20 row(s)"
     );
 }

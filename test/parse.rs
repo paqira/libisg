@@ -19,6 +19,5 @@ fn example_2() {
 fn example_3() {
     let s = fs::read_to_string("rsc/isg/example.3.isg").unwrap();
     let isg = from_str(&s).unwrap();
-    println!("{:?}", isg.data);
     assert_eq!(s, isg.to_string())
 }
