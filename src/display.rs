@@ -2,33 +2,32 @@ use std::fmt::{Display, Formatter, Write};
 
 use crate::*;
 
-impl<'a> Display for ISG<'a> {
+impl Display for ISG {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         macro_rules! fmt_angle {
             ($angle:expr, $unit:expr) => {
                 match $angle {
-                    Angle::DMS {
+                    Coord::DMS {
                         degree,
                         minutes,
                         second,
                     } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
-                    Angle::Deg { degree } => match $unit {
-                        CoordUnits::Deg => format!("{:11.6}", degree),
+                    Coord::Dec(value) => match $unit {
+                        CoordUnits::Deg => format!("{:11.6}", value),
                         CoordUnits::DMS => {
-                            format!("{:11.6}", degree)
+                            format!("{:>11}", value)
                         }
                         CoordUnits::Meters | CoordUnits::Feet => {
-                            format!("{:11.3}", degree)
+                            format!("{:11.3}", value)
                         }
                     },
                 }
             };
         }
 
-        let comment = self.comment.as_ref();
-        if !comment.is_empty() {
-            f.write_str(comment)?;
-            if !comment.ends_with('\n') {
+        if !self.comment.is_empty() {
+            f.write_str(&self.comment)?;
+            if !self.comment.ends_with('\n') {
                 f.write_char('\n')?;
             }
         }
@@ -256,7 +255,11 @@ delta east      = ---\n",
         match &self.data {
             Data::Grid(data) => {
                 for row in data {
+                    let mut first = true;
                     for column in row {
+                        if !first {
+                            f.write_char(' ')?;
+                        }
                         match column {
                             None => match self.header.nodata.as_ref() {
                                 None => return Err(std::fmt::Error {}),
@@ -264,17 +267,17 @@ delta east      = ---\n",
                             },
                             Some(v) => write!(f, "{:10.4}", v)?,
                         }
-                        f.write_char(' ')?;
+                        first = false;
                     }
                     f.write_char('\n')?;
                 }
             }
             Data::Sparse(data) => {
                 for row in data {
-                    fmt_angle!(&row.0, &self.header.coord_units);
+                    f.write_str(&fmt_angle!(&row.0, &self.header.coord_units))?;
                     f.write_char(' ')?;
 
-                    fmt_angle!(&row.1, &self.header.coord_units);
+                    f.write_str(&fmt_angle!(&row.1, &self.header.coord_units))?;
                     f.write_char(' ')?;
 
                     write!(f, "{:10.4}", row.2)?;
@@ -381,15 +384,15 @@ impl Display for CreationDate {
     }
 }
 
-impl Display for Angle {
+impl Display for Coord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Angle::DMS {
+            Coord::DMS {
                 degree,
                 minutes,
                 second,
             } => format!("{}°{:02}'{:02}\"", degree, minutes, second),
-            Angle::Deg { degree } => format!("{}", degree),
+            Coord::Dec(value) => format!("{}", value),
         };
         f.pad(&s)
     }

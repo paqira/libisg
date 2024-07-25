@@ -1,11 +1,11 @@
 [package]
 name = "libisg"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Kentaro Tatsumi <paqira.2019@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/paqira/libisg"
-description = "Libraly reading/writing ISG 2.0 format file"
+description = "Libraly reading/writing ISG 2.0 format"
 keywords = ["GIS", "SIG"]
 readme = "README.md"
 exclude = [".*"]

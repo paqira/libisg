@@ -1,9 +1,7 @@
-use std::borrow::Cow;
-use std::iter::Peekable;
 use std::str::FromStr;
 
 use crate::error::*;
-use crate::token::{Token, Tokens};
+use crate::token::{Token, TokenKind, Tokenizer};
 use crate::*;
 
 impl FromStr for ModelType {
@@ -101,11 +99,11 @@ impl FromStr for CoordUnits {
     }
 }
 
-impl FromStr for Angle {
+impl FromStr for Coord {
     type Err = ParseValueError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(f) = s.parse::<f64>() {
-            return Ok(Self::Deg { degree: f });
+        if let Ok(f) = s.parse() {
+            return Ok(Self::Dec(f));
         }
 
         let (d, rest) = s.split_once('°').ok_or(Self::Err::new(s))?;
@@ -149,583 +147,758 @@ impl FromStr for CreationDate {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum HeaderField {
+    ModelName,
+    ModelYear,
+    ModelType,
+    DataType,
+    DataUnits,
+    DataFormat,
+    DataOrdering,
+    RefEllipsoid,
+    RefFrame,
+    HeightDatum,
+    TideSystem,
+    CoordType,
+    CoordUnits,
+    MapProjection,
+    EpsgCode,
+    LatMin,
+    LatMax,
+    NorthMin,
+    NorthMax,
+    LonMin,
+    LonMax,
+    EastMin,
+    EastMax,
+    DeltaLat,
+    DeltaLon,
+    DeltaNorth,
+    DeltaEast,
+    NRows,
+    NCols,
+    NoData,
+    CreationDate,
+    IsgFormat,
+}
+
+impl FromStr for HeaderField {
+    type Err = ParseValueError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "model name" => Ok(Self::ModelName),
+            "model year" => Ok(Self::ModelYear),
+            "model type" => Ok(Self::ModelType),
+            "data type" => Ok(Self::DataType),
+            "data units" => Ok(Self::DataUnits),
+            "data format" => Ok(Self::DataFormat),
+            "data ordering" => Ok(Self::DataOrdering),
+            "ref ellipsoid" => Ok(Self::RefEllipsoid),
+            "ref frame" => Ok(Self::RefFrame),
+            "height datum" => Ok(Self::HeightDatum),
+            "tide system" => Ok(Self::TideSystem),
+            "coord type" => Ok(Self::CoordType),
+            "coord units" => Ok(Self::CoordUnits),
+            "map projection" => Ok(Self::MapProjection),
+            "EPSG code" => Ok(Self::EpsgCode),
+            "lat min" => Ok(Self::LatMin),
+            "lat max" => Ok(Self::LatMax),
+            "lon min" => Ok(Self::LonMin),
+            "lon max" => Ok(Self::LonMax),
+            "north min" => Ok(Self::NorthMin),
+            "north max" => Ok(Self::NorthMax),
+            "east min" => Ok(Self::EastMin),
+            "east max" => Ok(Self::EastMax),
+            "delta lat" => Ok(Self::DeltaLat),
+            "delta lon" => Ok(Self::DeltaLon),
+            "delta north" => Ok(Self::DeltaNorth),
+            "delta east" => Ok(Self::DeltaEast),
+            "nrows" => Ok(Self::NRows),
+            "ncols" => Ok(Self::NCols),
+            "nodata" => Ok(Self::NoData),
+            "creation date" => Ok(Self::CreationDate),
+            "ISG format" => Ok(Self::IsgFormat),
+            s => Err(Self::Err::new(s)),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 struct HeaderStore<'a> {
-    model_name: Option<Option<Cow<'a, str>>>,
-    model_year: Option<Option<Cow<'a, str>>>,
-    model_type: Option<Option<ModelType>>,
-    data_type: Option<Option<DataType>>,
-    data_units: Option<Option<DataUnit>>,
-    data_format: Option<Option<DataFormat>>,
-    data_ordering: Option<Option<DataOrdering>>,
-    ref_ellipsoid: Option<Option<Cow<'a, str>>>,
-    ref_frame: Option<Option<Cow<'a, str>>>,
-    height_datum: Option<Option<Cow<'a, str>>>,
-    tide_system: Option<Option<TideSystem>>,
-    coord_type: Option<Option<CoordType>>,
-    coord_units: Option<Option<CoordUnits>>,
-    map_projection: Option<Option<Cow<'a, str>>>,
-    epsg_code: Option<Option<Cow<'a, str>>>,
-    lat_min: Option<Option<Angle>>,
-    lat_max: Option<Option<Angle>>,
-    north_min: Option<Option<Angle>>,
-    north_max: Option<Option<Angle>>,
-    lon_min: Option<Option<Angle>>,
-    lon_max: Option<Option<Angle>>,
-    east_min: Option<Option<Angle>>,
-    east_max: Option<Option<Angle>>,
-    delta_lat: Option<Option<Angle>>,
-    delta_lon: Option<Option<Angle>>,
-    delta_north: Option<Option<Angle>>,
-    delta_east: Option<Option<Angle>>,
-    nrows: Option<usize>,
-    ncols: Option<usize>,
-    nodata: Option<Option<f64>>,
-    creation_date: Option<Option<CreationDate>>,
-    isg_format: Option<Cow<'a, str>>,
+    model_name: Option<Token<'a>>,
+    model_year: Option<Token<'a>>,
+    model_type: Option<Token<'a>>,
+    data_type: Option<Token<'a>>,
+    data_units: Option<Token<'a>>,
+    data_format: Option<Token<'a>>,
+    data_ordering: Option<Token<'a>>,
+    ref_ellipsoid: Option<Token<'a>>,
+    ref_frame: Option<Token<'a>>,
+    height_datum: Option<Token<'a>>,
+    tide_system: Option<Token<'a>>,
+    coord_type: Option<Token<'a>>,
+    coord_units: Option<Token<'a>>,
+    map_projection: Option<Token<'a>>,
+    epsg_code: Option<Token<'a>>,
+    lat_min: Option<Token<'a>>,
+    lat_max: Option<Token<'a>>,
+    north_min: Option<Token<'a>>,
+    north_max: Option<Token<'a>>,
+    lon_min: Option<Token<'a>>,
+    lon_max: Option<Token<'a>>,
+    east_min: Option<Token<'a>>,
+    east_max: Option<Token<'a>>,
+    delta_lat: Option<Token<'a>>,
+    delta_lon: Option<Token<'a>>,
+    delta_north: Option<Token<'a>>,
+    delta_east: Option<Token<'a>>,
+    nrows: Option<Token<'a>>,
+    ncols: Option<Token<'a>>,
+    nodata: Option<Token<'a>>,
+    creation_date: Option<Token<'a>>,
+    isg_format: Option<Token<'a>>,
 }
 
 impl<'a> HeaderStore<'a> {
-    fn from_iter(iter: &mut Peekable<Tokens<'a>>) -> Result<Self, ParseIsgError> {
+    fn from_tokenizer(tokenizer: &mut Tokenizer<'a>) -> Result<Self, ParseError> {
         let mut this = Self::default();
 
         macro_rules! set_value {
-            ($field:ident, $kind:ident, $value:expr) => {{
+            ($key:ident, $field:ident, $kind:ident, $value:expr) => {{
                 if this.$field.is_some() {
-                    return Err(ParseIsgError::dup_header_field(HeaderKind::$kind));
+                    return Err(ParseError::dup_header(HeaderField::$kind, $key));
                 };
 
                 this.$field = Some($value);
             }};
         }
 
-        loop {
-            match iter.next() {
-                Some(Token::EndOfHeader) => return Ok(this),
-                Some(Token::Comment { .. } | Token::DataRow { .. } | Token::BeginOfHeader)
-                | None => return Err(ParseIsgError::new(ParseIsgErrorKind::MissingEndOfHead)),
-                Some(Token::Assign { key, value, .. }) => match key.as_ref() {
-                    "model name" => set_value!(model_name, ModelName, parse_textual(value)?),
-                    "model year" => set_value!(model_year, ModelYear, parse_textual(value)?),
-                    "model type" => set_value!(
-                        model_type,
-                        ModelType,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "data type" => set_value!(
-                        data_type,
-                        DataType,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "data units" => set_value!(
-                        data_units,
-                        DataUnits,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "data format" => set_value!(
-                        data_format,
-                        DataFormat,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "data ordering" => {
-                        set_value!(
-                            data_ordering,
-                            DataOrdering,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "ref ellipsoid" => {
-                        set_value!(ref_ellipsoid, RefEllipsoid, parse_textual(value)?)
-                    }
-                    "ref frame" => set_value!(ref_frame, RefFrame, parse_textual(value)?),
-                    "height datum" => set_value!(height_datum, HeightDatum, parse_textual(value)?),
-                    "tide system" => set_value!(
-                        tide_system,
-                        TideSystem,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "coord type" => {
-                        set_value!(
-                            coord_type,
-                            CoordType,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "coord units" => set_value!(
-                        coord_units,
-                        CoordUnits,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "map projection" => {
-                        set_value!(map_projection, MapProjection, parse_textual(value)?)
-                    }
-                    "EPSG code" => set_value!(epsg_code, EpsgCode, value.into()),
-                    "lat min" => set_value!(
-                        lat_min,
-                        LatMin,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "north min" => set_value!(
-                        north_min,
-                        LatMax,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "lat max" => set_value!(
-                        lat_max,
-                        NorthMin,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "north max" => {
-                        set_value!(
-                            north_max,
-                            NorthMax,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "lon min" => set_value!(
-                        lon_min,
-                        LonMin,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "east min" => set_value!(
-                        east_min,
-                        LonMax,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "lon max" => set_value!(
-                        lon_max,
-                        EastMin,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "east max" => set_value!(
-                        east_max,
-                        EastMax,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => Some(x.parse()?),
-                        }
-                    ),
-                    "delta lat" => {
-                        set_value!(
-                            delta_lat,
-                            DeltaLat,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "delta north" => {
-                        set_value!(
-                            delta_north,
-                            DeltaLon,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "delta lon" => {
-                        set_value!(
-                            delta_lon,
-                            DeltaNorth,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "delta east" => {
-                        set_value!(
-                            delta_east,
-                            DeltaEast,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "nrows" => set_value!(
-                        nrows,
-                        NRows,
-                        value
-                            .parse()
-                            .map_err(|_| ParseValueError::new(value.as_ref()))?
-                    ),
-                    "ncols" => set_value!(
-                        ncols,
-                        NCols,
-                        value
-                            .parse()
-                            .map_err(|_| ParseValueError::new(value.as_ref()))?
-                    ),
-                    "nodata" => set_value!(
-                        nodata,
-                        NoData,
-                        match value.as_ref() {
-                            "---" => None,
-                            x => {
-                                let r = x
-                                    .parse()
-                                    .map_err(|_| ParseValueError::new(value.as_ref()))?;
-                                Some(r)
-                            }
-                        }
-                    ),
-                    "creation date" => {
-                        set_value!(
-                            creation_date,
-                            CreationDate,
-                            match value.as_ref() {
-                                "---" => None,
-                                x => Some(x.parse()?),
-                            }
-                        )
-                    }
-                    "ISG format" => set_value!(isg_format, IsgFormat, value),
-                    _ => return Err(ParseIsgError::new(ParseIsgErrorKind::InvalidHeaderField)),
-                },
+        while let Some((key, _, value)) = tokenizer.tokenize_header()? {
+            match key
+                .value
+                .parse()
+                .map_err(|_| ParseError::invalid_header_key(&key))?
+            {
+                HeaderField::ModelName => set_value!(key, model_name, ModelName, value),
+                HeaderField::ModelYear => set_value!(key, model_year, ModelYear, value),
+                HeaderField::ModelType => set_value!(key, model_type, ModelType, value),
+                HeaderField::DataType => set_value!(key, data_type, DataType, value),
+                HeaderField::DataUnits => set_value!(key, data_units, DataUnits, value),
+                HeaderField::DataFormat => set_value!(key, data_format, DataFormat, value),
+                HeaderField::DataOrdering => set_value!(key, data_ordering, DataOrdering, value),
+                HeaderField::RefEllipsoid => set_value!(key, ref_ellipsoid, RefEllipsoid, value),
+                HeaderField::RefFrame => set_value!(key, ref_frame, RefFrame, value),
+                HeaderField::TideSystem => set_value!(key, tide_system, TideSystem, value),
+                HeaderField::CoordType => set_value!(key, coord_type, CoordType, value),
+                HeaderField::CoordUnits => set_value!(key, coord_units, CoordUnits, value),
+                HeaderField::MapProjection => set_value!(key, map_projection, MapProjection, value),
+                HeaderField::EpsgCode => set_value!(key, epsg_code, EpsgCode, value),
+                HeaderField::HeightDatum => set_value!(key, height_datum, HeightDatum, value),
+                HeaderField::LatMin => set_value!(key, lat_min, LatMin, value),
+                HeaderField::LatMax => set_value!(key, lat_max, LatMax, value),
+                HeaderField::NorthMin => set_value!(key, north_min, NorthMin, value),
+                HeaderField::NorthMax => set_value!(key, north_max, NorthMax, value),
+                HeaderField::LonMin => set_value!(key, lon_min, LonMin, value),
+                HeaderField::LonMax => set_value!(key, lon_max, LonMax, value),
+                HeaderField::EastMin => set_value!(key, east_min, EastMin, value),
+                HeaderField::EastMax => set_value!(key, east_max, EastMax, value),
+                HeaderField::DeltaLat => set_value!(key, delta_lat, DeltaLat, value),
+                HeaderField::DeltaLon => set_value!(key, delta_lon, DeltaLon, value),
+                HeaderField::DeltaNorth => set_value!(key, delta_north, DeltaNorth, value),
+                HeaderField::DeltaEast => set_value!(key, delta_east, DeltaEast, value),
+                HeaderField::NRows => set_value!(key, nrows, NRows, value),
+                HeaderField::NCols => set_value!(key, ncols, NCols, value),
+                HeaderField::NoData => set_value!(key, nodata, NoData, value),
+                HeaderField::CreationDate => set_value!(key, creation_date, CreationDate, value),
+                HeaderField::IsgFormat => set_value!(key, isg_format, IsgFormat, value),
             }
         }
+
+        Ok(this)
     }
 
-    fn header(self) -> Result<Header<'a>, ParseIsgError> {
-        let data_bounds = match &self.coord_type.as_ref() {
-            None => return Err(ParseIsgError::missing_header_field()),
-            Some(None) => return Err(ParseIsgError::invalid_header_value()),
-            Some(Some(CoordType::Geodetic)) => {
+    fn header(self) -> Result<Header, ParseError> {
+        #[allow(non_snake_case)]
+        let ISG_format = match self
+            .isg_format
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::IsgFormat))?
+            .value
+            .as_ref()
+        {
+            s @ "2.0" => s.to_string(),
+            _ => {
+                return Err(ParseError::invalid_header_value(
+                    HeaderField::IsgFormat,
+                    &self.isg_format.expect("already checked"),
+                ))
+            }
+        };
+
+        let data_format = self
+            .data_format
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::DataFormat))?
+            .value
+            .as_ref()
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::DataFormat,
+                    self.data_format.as_ref().unwrap(),
+                )
+            })?;
+
+        let coord_type = self
+            .coord_type
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::CoordType))?
+            .value
+            .as_ref()
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::CoordType,
+                    self.coord_type.as_ref().unwrap(),
+                )
+            })?;
+
+        let coord_units: CoordUnits = self
+            .coord_units
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::CoordUnits))?
+            .value
+            .as_ref()
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::CoordUnits,
+                    self.coord_units.as_ref().unwrap(),
+                )
+            })?;
+
+        let data_bounds = match coord_type {
+            CoordType::Geodetic => {
                 if [
-                    &self.north_min,
-                    &self.north_max,
-                    &self.east_min,
-                    &self.east_max,
-                    &self.delta_north,
-                    &self.delta_east,
+                    self.north_min.as_ref(),
+                    self.north_max.as_ref(),
+                    self.east_min.as_ref(),
+                    self.east_max.as_ref(),
+                    self.delta_north.as_ref(),
+                    self.delta_east.as_ref(),
                 ]
                 .iter()
-                .any(|x| x.as_ref().map_or(false, Option::is_some))
+                .any(Option::is_some)
                 {
-                    return Err(ParseIsgError::new(ParseIsgErrorKind::InvalidDataBounds));
+                    return Err(ParseError::invalid_data_bounds());
                 }
 
-                match &self.data_format.as_ref() {
-                    None => return Err(ParseIsgError::missing_header_field()),
-                    Some(None) => return Err(ParseIsgError::invalid_header_value()),
-                    Some(Some(DataFormat::Grid)) => DataBounds::GridGeodetic {
-                        lat_min: self
-                            .lat_min
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        lat_max: self
-                            .lat_max
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        lon_min: self
-                            .lon_min
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        lon_max: self
-                            .lon_max
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        delta_lat: self
-                            .delta_lat
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        delta_lon: self
-                            .delta_lon
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
+                let lat_min = self
+                    .lat_min
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::LatMin))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::LatMin,
+                            self.lat_min.as_ref().unwrap(),
+                        )
+                    })?;
+                let lat_max = self
+                    .lat_max
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::LatMax))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::LatMax,
+                            self.lat_max.as_ref().unwrap(),
+                        )
+                    })?;
+                let lon_min = self
+                    .lon_min
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::LonMin))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::LonMin,
+                            self.lon_min.as_ref().unwrap(),
+                        )
+                    })?;
+                let lon_max = self
+                    .lon_max
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::LonMax))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::LonMax,
+                            self.lon_max.as_ref().unwrap(),
+                        )
+                    })?;
+                let delta_lat = match self
+                    .delta_lat
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaLat))?
+                    .value
+                    .as_ref()
+                {
+                    "---" => None,
+                    s => Some(s.parse().map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaLat,
+                            self.delta_lat.as_ref().unwrap(),
+                        )
+                    })?),
+                };
+                let delta_lon = match self
+                    .delta_lon
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaLon))?
+                    .value
+                    .as_ref()
+                {
+                    "---" => None,
+                    s => Some(s.parse().map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaLon,
+                            self.delta_lon.as_ref().unwrap(),
+                        )
+                    })?),
+                };
+
+                match data_format {
+                    DataFormat::Grid => DataBounds::GridGeodetic {
+                        lat_min,
+                        lat_max,
+                        lon_min,
+                        lon_max,
+                        delta_lat: delta_lat.ok_or(ParseError::invalid_header_value(
+                            HeaderField::DeltaLat,
+                            &self.delta_lat.expect("already checked"),
+                        ))?,
+                        delta_lon: delta_lon.ok_or(ParseError::invalid_header_value(
+                            HeaderField::DeltaLon,
+                            &self.delta_lon.expect("already checked"),
+                        ))?,
                     },
-                    Some(Some(DataFormat::Sparse)) => {
-                        if [self.delta_lat, self.delta_lon]
-                            .iter()
-                            .any(|v| v.as_ref().map_or(false, Option::is_some))
-                        {
-                            return Err(ParseIsgError::new(ParseIsgErrorKind::InvalidDataBounds));
-                        }
+                    DataFormat::Sparse => {
+                        if delta_lat.is_some() {
+                            return Err(ParseError::invalid_header_value(
+                                HeaderField::DeltaLat,
+                                &self.delta_lat.expect("already checked"),
+                            ));
+                        };
+                        if delta_lon.is_some() {
+                            return Err(ParseError::invalid_header_value(
+                                HeaderField::DeltaLon,
+                                &self.delta_lon.expect("already checked"),
+                            ));
+                        };
 
                         DataBounds::SparseGeodetic {
-                            lat_min: self
-                                .lat_min
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            lat_max: self
-                                .lat_max
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            lon_min: self
-                                .lon_min
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            lon_max: self
-                                .lon_max
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
+                            lat_min,
+                            lat_max,
+                            lon_min,
+                            lon_max,
                         }
                     }
                 }
             }
-            Some(Some(CoordType::Projected)) => {
+            CoordType::Projected => {
                 if [
-                    &self.lat_min,
-                    &self.lat_max,
-                    &self.lon_min,
-                    &self.lon_max,
-                    &self.delta_lat,
-                    &self.delta_lon,
+                    self.lat_min.as_ref(),
+                    self.lat_max.as_ref(),
+                    self.lon_min.as_ref(),
+                    self.lon_max.as_ref(),
+                    self.delta_lat.as_ref(),
+                    self.delta_lon.as_ref(),
                 ]
                 .iter()
-                .any(|x| x.as_ref().map_or(false, Option::is_some))
+                .any(Option::is_some)
                 {
-                    return Err(ParseIsgError::new(ParseIsgErrorKind::InvalidDataBounds));
+                    return Err(ParseError::invalid_data_bounds());
                 }
 
-                match &self.data_format.as_ref() {
-                    None => return Err(ParseIsgError::missing_header_field()),
-                    Some(None) => return Err(ParseIsgError::invalid_header_value()),
-                    Some(Some(DataFormat::Grid)) => DataBounds::GridProjected {
-                        north_min: self
-                            .north_min
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        north_max: self
-                            .north_max
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        east_min: self
-                            .east_min
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        east_max: self
-                            .east_max
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        delta_north: self
-                            .delta_north
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
-                        delta_east: self
-                            .delta_east
-                            .ok_or(ParseIsgError::missing_header_field())?
-                            .ok_or(ParseIsgError::invalid_header_value())?,
+                let north_min = self
+                    .north_min
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::NorthMin))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::NorthMin,
+                            self.north_min.as_ref().unwrap(),
+                        )
+                    })?;
+                let north_max = self
+                    .north_max
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::NorthMax))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::NorthMax,
+                            self.north_max.as_ref().unwrap(),
+                        )
+                    })?;
+                let east_min = self
+                    .east_min
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::EastMin))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::EastMin,
+                            self.east_min.as_ref().unwrap(),
+                        )
+                    })?;
+                let east_max = self
+                    .east_max
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::EastMax))?
+                    .value
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::EastMax,
+                            self.east_max.as_ref().unwrap(),
+                        )
+                    })?;
+                let delta_north = match self
+                    .delta_north
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaNorth))?
+                    .value
+                    .as_ref()
+                {
+                    "---" => None,
+                    s => Some(s.parse().map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaNorth,
+                            self.delta_north.as_ref().unwrap(),
+                        )
+                    })?),
+                };
+                let delta_east = match self
+                    .delta_east
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaEast))?
+                    .value
+                    .as_ref()
+                {
+                    "---" => None,
+                    s => Some(s.parse().map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaEast,
+                            self.delta_east.as_ref().unwrap(),
+                        )
+                    })?),
+                };
+
+                match coord_type {
+                    CoordType::Geodetic => DataBounds::GridProjected {
+                        north_min,
+                        north_max,
+                        east_min,
+                        east_max,
+                        delta_north: delta_north.ok_or(ParseError::invalid_header_value(
+                            HeaderField::DeltaNorth,
+                            &self.delta_north.expect("already checked"),
+                        ))?,
+                        delta_east: delta_east.ok_or(ParseError::invalid_header_value(
+                            HeaderField::DeltaEast,
+                            &self.delta_east.expect("already checked"),
+                        ))?,
                     },
-                    Some(Some(DataFormat::Sparse)) => {
-                        if [self.delta_north, self.delta_east]
-                            .iter()
-                            .any(|v| v.as_ref().map_or(false, Option::is_some))
-                        {
-                            return Err(ParseIsgError::new(ParseIsgErrorKind::InvalidDataBounds));
-                        }
+                    CoordType::Projected => {
+                        if delta_north.is_some() {
+                            return Err(ParseError::invalid_header_value(
+                                HeaderField::DeltaNorth,
+                                &self.delta_north.expect("already checked"),
+                            ));
+                        };
+                        if delta_east.is_some() {
+                            return Err(ParseError::invalid_header_value(
+                                HeaderField::DeltaEast,
+                                &self.delta_east.expect("already checked"),
+                            ));
+                        };
 
                         DataBounds::SparseProjected {
-                            north_min: self
-                                .north_min
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            north_max: self
-                                .north_max
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            east_min: self
-                                .east_min
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
-                            east_max: self
-                                .east_max
-                                .ok_or(ParseIsgError::missing_header_field())?
-                                .ok_or(ParseIsgError::invalid_header_value())?,
+                            north_min,
+                            north_max,
+                            east_min,
+                            east_max,
                         }
                     }
                 }
             }
         };
 
+        fn text(token: Token) -> Option<String> {
+            if token.value.eq("---") {
+                None
+            } else {
+                Some(token.value.into())
+            }
+        }
+
         Ok(Header {
-            model_name: self
-                .model_name
-                .ok_or(ParseIsgError::missing_header_field())?,
-            model_year: self
-                .model_year
-                .ok_or(ParseIsgError::missing_header_field())?,
-            model_type: self
-                .model_type
-                .ok_or(ParseIsgError::missing_header_field())?,
-            data_type: self
-                .data_type
-                .ok_or(ParseIsgError::missing_header_field())?,
-            data_units: self
-                .data_units
-                .ok_or(ParseIsgError::missing_header_field())?,
-            data_format: self
-                .data_format
-                .ok_or(ParseIsgError::missing_header_field())?
-                .ok_or(ParseIsgError::invalid_header_value())?,
-            data_ordering: self
-                .data_ordering
-                .ok_or(ParseIsgError::missing_header_field())?,
-            ref_ellipsoid: self
-                .ref_ellipsoid
-                .ok_or(ParseIsgError::missing_header_field())?,
-            ref_frame: self
-                .ref_frame
-                .ok_or(ParseIsgError::missing_header_field())?,
-            height_datum: self
-                .height_datum
-                .ok_or(ParseIsgError::missing_header_field())?,
-            tide_system: self
-                .tide_system
-                .ok_or(ParseIsgError::missing_header_field())?,
-            coord_type: self
-                .coord_type
-                .ok_or(ParseIsgError::missing_header_field())?
-                .ok_or(ParseIsgError::invalid_header_value())?,
-            coord_units: self
-                .coord_units
-                .ok_or(ParseIsgError::missing_header_field())?
-                .ok_or(ParseIsgError::invalid_header_value())?,
-            map_projection: self
-                .map_projection
-                .ok_or(ParseIsgError::missing_header_field())?,
-            EPSG_code: self
-                .epsg_code
-                .ok_or(ParseIsgError::missing_header_field())?,
+            model_name: self.model_name.and_then(text),
+            model_year: self.model_year.and_then(text),
+            model_type: match self.model_type.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::ModelType,
+                                self.model_type.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            data_type: match self.data_type.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::DataType,
+                                self.data_type.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            data_units: match self.data_units.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::DataUnits,
+                                self.data_units.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            data_format,
+            data_ordering: match self.data_ordering.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::DataOrdering,
+                                self.data_ordering.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            ref_ellipsoid: self.ref_ellipsoid.and_then(text),
+            ref_frame: self.ref_frame.and_then(text),
+            height_datum: self.height_datum.and_then(text),
+            tide_system: match self.tide_system.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::TideSystem,
+                                self.tide_system.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            coord_type,
+            coord_units,
+            map_projection: self.map_projection.and_then(text),
+            EPSG_code: self.epsg_code.and_then(text),
             data_bounds,
-            nrows: self.nrows.ok_or(ParseIsgError::missing_header_field())?,
-            ncols: self.ncols.ok_or(ParseIsgError::missing_header_field())?,
-            nodata: self.nodata.ok_or(ParseIsgError::missing_header_field())?,
-            creation_date: self
-                .creation_date
-                .ok_or(ParseIsgError::missing_header_field())?,
-            ISG_format: self
-                .isg_format
-                .ok_or(ParseIsgError::missing_header_field())?,
+            nrows: self
+                .nrows
+                .as_ref()
+                .ok_or(ParseError::missing_header(HeaderField::NRows))?
+                .value
+                .parse()
+                .map_err(|_| {
+                    ParseError::invalid_header_value(
+                        HeaderField::NRows,
+                        &self.nrows.expect("already checked"),
+                    )
+                })?,
+            ncols: self
+                .ncols
+                .as_ref()
+                .ok_or(ParseError::missing_header(HeaderField::NCols))?
+                .value
+                .parse()
+                .map_err(|_| {
+                    ParseError::invalid_header_value(
+                        HeaderField::NCols,
+                        &self.ncols.expect("already checked"),
+                    )
+                })?,
+            nodata: match self
+                .nodata
+                .as_ref()
+                .ok_or(ParseError::missing_header(HeaderField::NoData))?
+                .value
+                .as_ref()
+            {
+                "---" => None,
+                s => Some(s.parse().map_err(|_| {
+                    ParseError::invalid_header_value(
+                        HeaderField::NoData,
+                        &self.nodata.expect("already checked"),
+                    )
+                })?),
+            },
+            creation_date: match self.creation_date.as_ref() {
+                None => None,
+                Some(token) => match token.value.as_ref() {
+                    "---" => None,
+                    s => {
+                        let value = s.parse().map_err(|e| {
+                            ParseError::from_parse_value_err(
+                                e,
+                                HeaderField::CreationDate,
+                                self.creation_date.as_ref().unwrap(),
+                            )
+                        })?;
+                        Some(value)
+                    }
+                },
+            },
+            ISG_format,
         })
     }
 }
 
-fn parse_textual(s: Cow<str>) -> Result<Option<Cow<str>>, ParseValueError> {
-    match s.as_ref() {
-        "" => Err(ParseValueError::new(s.as_ref())),
-        "---" => Ok(None),
-        _ => Ok(Some(s)),
-    }
-}
-
-fn parse_data_grid(iter: &mut Peekable<Tokens>, header: &Header) -> Result<Data, ParseIsgError> {
+fn parse_data_grid(tokenizer: &mut Tokenizer, header: &Header) -> Result<Data, ParseError> {
     let mut data = Vec::with_capacity(header.nrows);
-    for row in iter {
-        match row {
-            Token::Assign { .. }
-            | Token::Comment { .. }
-            | Token::BeginOfHeader
-            | Token::EndOfHeader => unreachable!(),
-            Token::DataRow { column } => {
-                let mut temp = Vec::with_capacity(header.ncols);
-                for d in column.split_whitespace() {
-                    let a = d.parse().map_err(|_| ParseIsgError::invalid_data())?;
+    while let Some(tokens) = tokenizer.tokenize_data() {
+        let mut row = Vec::with_capacity(header.ncols);
+        for token in tokens {
+            match token.kind {
+                TokenKind::Datum => {
+                    let a: f64 = token
+                        .value
+                        .as_ref()
+                        .trim()
+                        .parse()
+                        .map_err(|_| ParseError::invalid_data(&token))?;
+
                     if header.nodata.as_ref().map_or(false, |m| m == &a) {
-                        temp.push(None)
+                        row.push(None)
                     } else {
-                        temp.push(Some(a))
+                        row.push(Some(a))
                     }
                 }
-
-                temp.shrink_to_fit();
-                data.push(temp)
+                _ => unreachable!(),
             }
         }
+        row.shrink_to_fit();
+        data.push(row)
     }
 
     data.shrink_to_fit();
     Ok(Data::Grid(data))
 }
 
-fn parse_data_sparse(iter: &mut Peekable<Tokens>, header: &Header) -> Result<Data, ParseIsgError> {
+fn parse_data_sparse(
+    tokenizer: &mut Tokenizer,
+    header: &Header,
+    lineno: usize,
+) -> Result<Data, ParseError> {
     let is_valid_angle = match &header.coord_units {
-        CoordUnits::DMS => |a: &Angle| matches!(a, Angle::DMS { .. }),
+        CoordUnits::DMS => |a: &Coord| matches!(a, Coord::DMS { .. }),
         CoordUnits::Deg | CoordUnits::Meters | CoordUnits::Feet => {
-            |a: &Angle| matches!(a, Angle::Deg { .. })
+            |a: &Coord| matches!(a, Coord::Dec { .. })
         }
     };
 
     let mut data = Vec::with_capacity(header.nrows);
-    for row in iter {
-        match row {
-            Token::Assign { .. }
-            | Token::Comment { .. }
-            | Token::BeginOfHeader
-            | Token::EndOfHeader => unreachable!(),
-            Token::DataRow { column } => {
-                let mut inner = column.split_whitespace();
+    let mut lno = lineno;
+    while let Some(mut tokens) = tokenizer.tokenize_data() {
+        lno += 1;
+        let a = match tokens.next() {
+            None => Err(ParseError::missing_data(DataColumnKind::First, lno)),
+            Some(token) => match token.value.as_ref().trim().parse() {
+                Ok(r) if is_valid_angle(&r) => Ok(r),
+                _ => Err(ParseError::invalid_data(&token)),
+            },
+        }?;
 
-                let a = inner
-                    .next()
-                    .ok_or(ParseIsgError::invalid_data())?
-                    .parse()
-                    .map_err(|_| ParseIsgError::invalid_data())?;
+        let b = match tokens.next() {
+            None => Err(ParseError::missing_data(DataColumnKind::Second, lno)),
+            Some(token) => match token.value.as_ref().trim().parse() {
+                Ok(r) if is_valid_angle(&r) => Ok(r),
+                _ => Err(ParseError::invalid_data(&token)),
+            },
+        }?;
 
-                let b = inner
-                    .next()
-                    .ok_or(ParseIsgError::invalid_data())?
-                    .parse()
-                    .map_err(|_| ParseIsgError::invalid_data())?;
+        let c = match tokens.next() {
+            None => Err(ParseError::missing_data(DataColumnKind::Third, lno)),
+            Some(token) => token
+                .value
+                .as_ref()
+                .trim()
+                .parse()
+                .map_err(|_| ParseError::invalid_data(&token)),
+        }?;
 
-                let c = inner.next().ok_or(ParseIsgError::invalid_data())?;
-                let c = c.parse().map_err(|_| ParseIsgError::invalid_data())?;
-
-                if !is_valid_angle(&a) || !is_valid_angle(&b) {
-                    return Err(ParseIsgError::invalid_data());
-                }
-
-                data.push((a, b, c));
-            }
+        if tokens.next().is_some() {
+            return Err(ParseError::invalid_sparse_data(lno));
         }
+
+        data.push((a, b, c));
     }
 
     data.shrink_to_fit();
@@ -733,25 +906,19 @@ fn parse_data_sparse(iter: &mut Peekable<Tokens>, header: &Header) -> Result<Dat
 }
 
 /// Deserialize ISG-format.
-pub fn from_str(s: &str) -> Result<ISG, ParseIsgError> {
-    let mut iter = Tokens::new(s).peekable();
+pub fn from_str(s: &str) -> Result<ISG, ParseError> {
+    let mut tokenizer = Tokenizer::new(s);
 
-    let comment = match iter.next() {
-        Some(Token::Comment { value }) => match iter.next() {
-            Some(Token::BeginOfHeader) => value,
-            _ => return Err(ParseIsgError::new(ParseIsgErrorKind::MissingBeginOfHead)),
-        },
-        Some(Token::BeginOfHeader) => Default::default(),
-        Some(Token::Assign { .. } | Token::DataRow { .. } | Token::EndOfHeader) | None => {
-            return Err(ParseIsgError::new(ParseIsgErrorKind::MissingEndOfHead));
-        }
-    };
+    let comment = tokenizer.tokenize_comment()?.value.to_string();
+    let _ = tokenizer.tokenize_begin_of_header()?;
 
-    let header = HeaderStore::from_iter(&mut iter)?.header()?;
+    let header = HeaderStore::from_tokenizer(&mut tokenizer)?.header()?;
+
+    let end_of_head = tokenizer.tokenize_end_of_header()?;
 
     let data = match header.data_format {
-        DataFormat::Grid => parse_data_grid(&mut iter, &header),
-        DataFormat::Sparse => parse_data_sparse(&mut iter, &header),
+        DataFormat::Grid => parse_data_grid(&mut tokenizer, &header),
+        DataFormat::Sparse => parse_data_sparse(&mut tokenizer, &header, end_of_head.lineno),
     }?;
 
     Ok(ISG {
@@ -759,4 +926,12 @@ pub fn from_str(s: &str) -> Result<ISG, ParseIsgError> {
         header,
         data,
     })
+}
+
+impl FromStr for ISG {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        from_str(s)
+    }
 }

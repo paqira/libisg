@@ -3,7 +3,7 @@ use std::fs;
 use serde_test::{assert_tokens, Token};
 
 use libisg::{
-    Angle, CoordType, CoordUnits, Data, DataBounds, DataFormat, DataOrdering, DataType, DataUnit,
+    Coord, CoordType, CoordUnits, Data, DataBounds, DataFormat, DataOrdering, DataType, DataUnit,
     Header, ModelType, ISG,
 };
 
@@ -28,12 +28,12 @@ fn grid_geodetic_dms() {
             map_projection: None,
             EPSG_code: None,
             data_bounds: DataBounds::GridGeodetic {
-                lat_min: Angle::with_dms(15, 0, 0),
-                lat_max: Angle::with_dms(50, 0, 0),
-                lon_min: Angle::with_dms(120, 0, 0),
-                lon_max: Angle::with_dms(160, 0, 0),
-                delta_lat: Angle::with_dms(0, 1, 0),
-                delta_lon: Angle::with_dms(0, 1, 30),
+                lat_min: Coord::with_dms(15, 0, 0),
+                lat_max: Coord::with_dms(50, 0, 0),
+                lon_min: Coord::with_dms(120, 0, 0),
+                lon_max: Coord::with_dms(160, 0, 0),
+                delta_lat: Coord::with_dms(0, 1, 0),
+                delta_lon: Coord::with_dms(0, 1, 30),
             },
             nrows: 0,
             ncols: 0,

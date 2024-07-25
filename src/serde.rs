@@ -1,35 +1,36 @@
-use serde::ser::SerializeStruct;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    Angle, CoordType, CoordUnits, DataFormat, DataOrdering, DataType, DataUnit, ModelType,
+    Coord, CoordType, CoordUnits, DataFormat, DataOrdering, DataType, DataUnit, ModelType,
     TideSystem,
 };
 
-impl Serialize for Angle {
+impl Serialize for Coord {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         // untagged
         match self {
-            Angle::DMS {
+            Coord::DMS {
                 degree,
                 minutes,
                 second,
             } => {
+                use serde::ser::SerializeStruct;
+
                 let mut s = serializer.serialize_struct("Angle", 3)?;
                 s.serialize_field("degree", degree)?;
                 s.serialize_field("minutes", minutes)?;
                 s.serialize_field("second", second)?;
                 s.end()
             }
-            Angle::Deg { degree } => serializer.serialize_f64(*degree),
+            Coord::Dec(value) => serializer.serialize_f64(*value),
         }
     }
 }
 
-impl<'de> Deserialize<'de> for Angle {
+impl<'de> Deserialize<'de> for Coord {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -71,7 +72,7 @@ impl<'de> Deserialize<'de> for Angle {
 
         struct AngleVisitor;
         impl<'de> de::Visitor<'de> for AngleVisitor {
-            type Value = Angle;
+            type Value = Coord;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("enum Angle")
@@ -81,7 +82,7 @@ impl<'de> Deserialize<'de> for Angle {
             where
                 E: de::Error,
             {
-                Ok(Self::Value::Deg { degree: v })
+                Ok(Self::Value::Dec(v))
             }
 
             fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
@@ -240,7 +241,7 @@ mod test {
 
     #[test]
     fn serde_angle() {
-        let angle = Angle::DMS {
+        let angle = Coord::DMS {
             degree: 1,
             minutes: 2,
             second: 3,
@@ -263,7 +264,7 @@ mod test {
             ],
         );
 
-        let angle = Angle::Deg { degree: 1.0 };
+        let angle = Coord::Dec(1.0);
 
         assert_tokens(&angle, &[Token::F64(1.0)]);
     }

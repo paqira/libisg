@@ -1,143 +1,202 @@
 use std::borrow::Cow;
-use std::iter::Peekable;
+use std::iter::{Enumerate, Peekable};
+use std::ops::Range;
 use std::str::Lines;
 
-const EQ: char = '=';
-const COLON: char = ':';
+use crate::error::ParseError;
+
 const BEGIN_OF_HEAD: &str = "begin_of_head";
 const END_OF_HEADER: &str = "end_of_head";
 
 #[derive(Debug)]
-pub(crate) struct Separator {
-    #[allow(dead_code)]
-    kind: SeparatorKind,
+pub(crate) struct Token<'a> {
+    pub(crate) kind: TokenKind,
+    pub(crate) value: Cow<'a, str>,
+    pub(crate) span: Range<usize>,
+    pub(crate) lineno: usize,
 }
 
 #[derive(Debug)]
-pub(crate) enum SeparatorKind {
-    Eq,
-    Colon,
-}
-
-#[derive(Debug)]
-pub(crate) enum Token<'a> {
-    Comment {
-        value: Cow<'a, str>,
-    },
-    Assign {
-        key: Cow<'a, str>,
-        #[allow(dead_code)]
-        sep: Separator,
-        value: Cow<'a, str>,
-    },
-    DataRow {
-        column: Cow<'a, str>,
-    },
+pub(crate) enum TokenKind {
+    Comment,
+    Key,
+    Sep,
+    Value,
+    Datum,
     BeginOfHeader,
     EndOfHeader,
 }
 
 #[derive(Debug)]
-enum Mode {
-    Comment,
-    Header,
-    Data,
+pub(crate) struct Tokenizer<'a> {
+    str: &'a str,
+    lines: Peekable<Enumerate<Lines<'a>>>,
+    lineno: usize,
 }
 
 #[derive(Debug)]
-pub(crate) struct Tokens<'a> {
-    str: &'a str,
-    lines: Peekable<Lines<'a>>,
-    mode: Mode,
+pub(crate) struct DataRowIterator<'a> {
+    line: &'a str,
+    lineno: usize,
+    pos: usize,
 }
 
-impl<'a> Iterator for Tokens<'a> {
+impl<'a> Iterator for DataRowIterator<'a> {
     type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.lines.peek(), &self.mode) {
-            (None, _) => None,
-            // detect begin/end_of_head, first
-            (Some(line), Mode::Comment) if line.starts_with(BEGIN_OF_HEAD) => {
-                self.mode = Mode::Header;
-                let _ = self.lines.next();
-                Some(Token::BeginOfHeader)
+        if self.pos == self.line.len() {
+            return None;
+        };
+
+        let mut found = false;
+        for (columns, c) in self.line[self.pos..].chars().enumerate() {
+            match c {
+                ' ' => {
+                    if found {
+                        let token = Token {
+                            kind: TokenKind::Datum,
+                            value: self.line[self.pos..self.pos + columns].into(),
+                            span: self.pos..self.pos + columns,
+                            lineno: self.lineno,
+                        };
+                        self.pos += columns;
+                        return Some(token);
+                    }
+                }
+                _ => found = true,
             }
-            (Some(line), Mode::Header) if line.starts_with(END_OF_HEADER) => {
-                self.mode = Mode::Data;
-                let _ = self.lines.next();
-                Some(Token::EndOfHeader)
-            }
-            // parse parts
-            (Some(_), Mode::Comment) => self.tokenize_comment(),
-            (Some(_), Mode::Header) => self.tokenize_header(),
-            (Some(_), Mode::Data) => self.tokenize_data(),
         }
+
+        let pos = self.pos;
+        self.pos = self.line.len();
+
+        Some(Token {
+            kind: TokenKind::Datum,
+            value: self.line[pos..].into(),
+            span: pos..self.line.len(),
+            lineno: self.lineno,
+        })
     }
 }
 
-impl<'a> Tokens<'a> {
+impl<'a> Tokenizer<'a> {
     pub(crate) fn new(s: &'a str) -> Self {
         Self {
             str: s,
-            lines: s.lines().peekable(),
-            mode: Mode::Comment,
+            lines: s.lines().enumerate().peekable(),
+            lineno: 1,
         }
     }
 
-    fn tokenize_comment(&mut self) -> Option<Token<'a>> {
-        let mut n: usize = 0;
+    pub(crate) fn tokenize_comment(&mut self) -> Result<Token<'a>, ParseError> {
+        let mut chars = 0;
         loop {
-            if matches!(self.lines.peek(), Some(s) if s.starts_with(BEGIN_OF_HEAD)) {
-                return Some(Token::Comment {
-                    value: self.str[0..n].into(),
-                });
-            }
-            match self.lines.next() {
-                None => return None,
+            match self.lines.peek() {
+                None => return Err(ParseError::missing_boh()),
+                Some((_, line)) if line.starts_with(BEGIN_OF_HEAD) => {
+                    let s = &self.str[0..chars];
+                    return Ok(Token {
+                        kind: TokenKind::Comment,
+                        value: s.into(),
+                        span: 0..s.len(),
+                        lineno: 0,
+                    });
+                }
                 Some(_) => {
-                    n += 1;
+                    let (lineno, line) = self.lines.next().unwrap();
+                    self.lineno = lineno;
+                    chars += line.len() + 1;
                 }
             }
         }
     }
 
-    fn tokenize_header(&mut self) -> Option<Token<'a>> {
+    pub(crate) fn tokenize_begin_of_header(&mut self) -> Result<Token<'a>, ParseError> {
         match self.lines.next() {
-            None => None,
-            Some(line) => {
-                let (k, sep, v) = if let Some((k, v)) = line.split_once(COLON) {
-                    (
-                        k,
-                        Separator {
-                            kind: SeparatorKind::Colon,
-                        },
-                        v,
-                    )
-                } else if let Some((k, v)) = line.split_once(EQ) {
-                    (
-                        k,
-                        Separator {
-                            kind: SeparatorKind::Eq,
-                        },
-                        v,
-                    )
+            None => Err(ParseError::missing_boh()),
+            Some((lineno, s)) => {
+                self.lineno = lineno;
+                if s.starts_with(BEGIN_OF_HEAD) {
+                    Ok(Token {
+                        kind: TokenKind::BeginOfHeader,
+                        value: s.into(),
+                        span: 0..s.len(),
+                        lineno: lineno + 1,
+                    })
                 } else {
-                    return None;
-                };
-
-                Some(Token::Assign {
-                    key: k.trim().into(),
-                    sep,
-                    value: v.trim().into(),
-                })
+                    Err(ParseError::missing_boh())
+                }
             }
         }
     }
 
-    fn tokenize_data(&mut self) -> Option<Token<'a>> {
-        self.lines.next().map(|line| Token::DataRow {
-            column: line.into(),
+    pub(crate) fn tokenize_header(
+        &mut self,
+    ) -> Result<Option<(Token<'a>, Token<'a>, Token<'a>)>, ParseError> {
+        match self.lines.peek() {
+            None => Err(ParseError::missing_eoh()),
+            Some((_, line)) if line.starts_with(END_OF_HEADER) => Ok(None),
+            Some(_) => {
+                let (lineno, line) = self.lines.next().expect("already checked");
+                match line.find([':', '=']) {
+                    None => Err(ParseError::missing_sep(0..line.len(), lineno + 1)),
+                    Some(pos) => {
+                        let start = line[0..pos].find(|c| c != ' ').unwrap();
+                        let end = line[0..pos].rfind(|c| c != ' ').unwrap();
+                        let key = Token {
+                            kind: TokenKind::Key,
+                            value: line[0..pos].trim().into(),
+                            span: start..end + 1,
+                            lineno: lineno + 1,
+                        };
+
+                        let sep = Token {
+                            kind: TokenKind::Sep,
+                            value: line[pos..(pos + 1)].into(),
+                            span: pos..(pos + 1),
+                            lineno: lineno + 1,
+                        };
+
+                        let start = line[(pos + 1)..].find(|c| c != ' ').unwrap();
+                        let end = line[(pos + 1)..].rfind(|c| c != ' ').unwrap();
+                        let value = Token {
+                            kind: TokenKind::Value,
+                            value: line[(pos + 1)..].trim().into(),
+                            span: pos + 1 + start..pos + 1 + end + 1,
+                            lineno: lineno + 1,
+                        };
+
+                        Ok(Some((key, sep, value)))
+                    }
+                }
+            }
+        }
+    }
+
+    pub(crate) fn tokenize_end_of_header(&mut self) -> Result<Token<'a>, ParseError> {
+        match self.lines.next() {
+            None => Err(ParseError::missing_eoh()),
+            Some((lineno, s)) => {
+                if s.starts_with(END_OF_HEADER) {
+                    Ok(Token {
+                        kind: TokenKind::EndOfHeader,
+                        value: s.into(),
+                        span: 0..s.len(),
+                        lineno: lineno + 1,
+                    })
+                } else {
+                    Err(ParseError::missing_eoh())
+                }
+            }
+        }
+    }
+
+    pub(crate) fn tokenize_data(&mut self) -> Option<DataRowIterator> {
+        self.lines.next().map(|(lineno, line)| DataRowIterator {
+            line,
+            pos: 0,
+            lineno: lineno + 1,
         })
     }
 }

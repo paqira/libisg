@@ -1,4 +1,4 @@
-//! Library that reading/writing ISG-format file.
+//! Library that reading/writing ISG-format.
 //!
 //! ```no_run
 //! use std::fs;
@@ -39,7 +39,7 @@
 //!
 //! ## ISG format
 //!
-//! Use [`from_str`] and `ISG::to_string`.
+//! Use [`from_str`] fn and [`Display`](std::fmt::Display) trait.
 //!
 //! ```no_run
 //! use std::fs;
@@ -79,22 +79,25 @@ use std::borrow::Cow;
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
 
-pub use error::ParseIsgError;
+#[doc(inline)]
+pub use error::{ParseError, ParseValueError};
+#[doc(inline)]
 pub use parse::from_str;
 
 mod display;
-pub mod error;
+mod error;
 mod parse;
 #[cfg(feature = "serde")]
 mod serde;
 mod token;
 
+/// ISG format
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct ISG<'a> {
+pub struct ISG {
     #[cfg_attr(feature = "serde", serde(default))]
-    pub comment: Cow<'a, str>,
-    pub header: Header<'a>,
+    pub comment: String,
+    pub header: Header,
     pub data: Data,
 }
 
@@ -102,29 +105,29 @@ pub struct ISG<'a> {
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[allow(non_snake_case)]
-pub struct Header<'a> {
-    pub model_name: Option<Cow<'a, str>>,
-    pub model_year: Option<Cow<'a, str>>,
+pub struct Header {
+    pub model_name: Option<String>,
+    pub model_year: Option<String>,
     pub model_type: Option<ModelType>,
     pub data_type: Option<DataType>,
     pub data_units: Option<DataUnit>,
     pub data_format: DataFormat,
     pub data_ordering: Option<DataOrdering>,
-    pub ref_ellipsoid: Option<Cow<'a, str>>,
-    pub ref_frame: Option<Cow<'a, str>>,
-    pub height_datum: Option<Cow<'a, str>>,
+    pub ref_ellipsoid: Option<String>,
+    pub ref_frame: Option<String>,
+    pub height_datum: Option<String>,
     pub tide_system: Option<TideSystem>,
     pub coord_type: CoordType,
     pub coord_units: CoordUnits,
-    pub map_projection: Option<Cow<'a, str>>,
-    pub EPSG_code: Option<Cow<'a, str>>,
+    pub map_projection: Option<String>,
+    pub EPSG_code: Option<String>,
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub data_bounds: DataBounds,
     pub nrows: usize,
     pub ncols: usize,
     pub nodata: Option<f64>,
     pub creation_date: Option<CreationDate>,
-    pub ISG_format: Cow<'a, str>,
+    pub ISG_format: String,
 }
 
 /// Data section of ISG.
@@ -133,9 +136,10 @@ pub struct Header<'a> {
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Data {
     Grid(Vec<Vec<Option<f64>>>),
-    Sparse(Vec<(Angle, Angle, f64)>),
+    Sparse(Vec<(Coord, Coord, f64)>),
 }
 
+/// Value of `model type`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ModelType {
     Gravimetric,
@@ -143,24 +147,28 @@ pub enum ModelType {
     Hybrid,
 }
 
+/// Value of `data type`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum DataType {
     Geoid,
     QuasiGeoid,
 }
 
+/// Value of `data units`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum DataUnit {
     Meters,
     Feet,
 }
 
+/// Value of `data format`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum DataFormat {
     Grid,
     Sparse,
 }
 
+/// Value of `data ordering`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum DataOrdering {
     N2SW2E,
@@ -170,6 +178,7 @@ pub enum DataOrdering {
     Zeta,
 }
 
+/// Value of `tide system`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum TideSystem {
     TideFree,
@@ -177,13 +186,14 @@ pub enum TideSystem {
     ZeroTide,
 }
 
+/// Value of `coord type`
 #[derive(Debug, Eq, PartialEq, Clone)]
-// #[derive(Serialize,Deserialize)]
 pub enum CoordType {
     Geodetic,
     Projected,
 }
 
+/// Value of `coord units`
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum CoordUnits {
     DMS,
@@ -197,35 +207,36 @@ pub enum CoordUnits {
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum DataBounds {
     GridGeodetic {
-        lat_min: Angle,
-        lat_max: Angle,
-        lon_min: Angle,
-        lon_max: Angle,
-        delta_lat: Angle,
-        delta_lon: Angle,
+        lat_min: Coord,
+        lat_max: Coord,
+        lon_min: Coord,
+        lon_max: Coord,
+        delta_lat: Coord,
+        delta_lon: Coord,
     },
     GridProjected {
-        north_min: Angle,
-        north_max: Angle,
-        east_min: Angle,
-        east_max: Angle,
-        delta_north: Angle,
-        delta_east: Angle,
+        north_min: Coord,
+        north_max: Coord,
+        east_min: Coord,
+        east_max: Coord,
+        delta_north: Coord,
+        delta_east: Coord,
     },
     SparseGeodetic {
-        lat_min: Angle,
-        lat_max: Angle,
-        lon_min: Angle,
-        lon_max: Angle,
+        lat_min: Coord,
+        lat_max: Coord,
+        lon_min: Coord,
+        lon_max: Coord,
     },
     SparseProjected {
-        north_min: Angle,
-        north_max: Angle,
-        east_min: Angle,
-        east_max: Angle,
+        north_min: Coord,
+        north_max: Coord,
+        east_min: Coord,
+        east_max: Coord,
     },
 }
 
+/// Value of `creation date`
 #[derive(Debug, Eq, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CreationDate {
@@ -240,19 +251,21 @@ impl CreationDate {
     }
 }
 
+/// Represents Coordinate
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Angle {
+pub enum Coord {
+    /// For `dms`
     DMS {
         degree: i16,
         minutes: u8,
         second: u8,
     },
-    Deg {
-        degree: f64,
-    },
+    /// For `deg`, `meters` and `feet`
+    Dec(f64),
 }
 
-impl Angle {
+impl Coord {
+    /// Make new [`Coord`]
     pub fn with_dms(degree: i16, minutes: u8, second: u8) -> Self {
         Self::DMS {
             degree,
@@ -261,7 +274,8 @@ impl Angle {
         }
     }
 
-    pub fn with_deg(degree: f64) -> Self {
-        Self::Deg { degree }
+    /// Make new [`Coord`]
+    pub fn with_dec(value: f64) -> Self {
+        Self::Dec(value)
     }
 }
