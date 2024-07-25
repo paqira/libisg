@@ -93,13 +93,29 @@ mod token;
 mod validation;
 
 /// ISG format
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ISG {
     #[cfg_attr(feature = "serde", serde(default))]
     pub comment: String,
     pub header: Header,
     pub data: Data,
+}
+
+impl Clone for ISG {
+    fn clone(&self) -> Self {
+        Self {
+            comment: self.comment.clone(),
+            header: self.header.clone(),
+            data: self.data.clone(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.comment.clone_from(&source.comment);
+        self.header.clone_from(&source.header);
+        self.data.clone_from(&source.data);
+    }
 }
 
 /// Header section of ISG.
@@ -132,12 +148,40 @@ pub struct Header {
 }
 
 /// Data section of ISG.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Data {
     Grid(Vec<Vec<Option<f64>>>),
     Sparse(Vec<(Coord, Coord, f64)>),
+}
+
+impl Clone for Data {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Grid(data) => Self::Grid(data.clone()),
+            Self::Sparse(data) => Self::Sparse(data.clone()),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        // FIXME: use match .. { .. }
+        if let Data::Grid(dst) = self {
+            if let Data::Grid(org) = source {
+                dst.clone_from(org)
+            } else {
+                *self = source.clone();
+            }
+        } else if let Data::Sparse(dst) = self {
+            if let Data::Sparse(org) = source {
+                dst.clone_from(org)
+            } else {
+                *self = source.clone();
+            }
+        } else {
+            *self = source.clone();
+        }
+    }
 }
 
 /// Value of `model type`
