@@ -76,6 +76,11 @@
 //! // deserialize
 //! assert_eq!(isg, serde_json::from_str(&json).unwrap());
 //! ```
+//!
+//! # Notes
+//!
+//! - [`libisg`](self)'s support of arithmetic on [`Coord`] is very minimal/basic,
+//!   consider to use other crates
 
 // TODO: support v1.1 format?
 
