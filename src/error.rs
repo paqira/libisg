@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use crate::parse::HeaderField;
 use crate::token::Token;
-use crate::CoordType;
+use crate::{CoordType, DataFormat};
 
 /// Error on parsing ISG format
 #[derive(Debug)]
@@ -424,5 +424,118 @@ impl Display for HeaderField {
             Self::IsgFormat => "ISG format",
         };
         f.write_str(s)
+    }
+}
+
+/// Error on validation
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct ValidationError {
+    kind: ValidationErrorKind,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub(crate) enum ValidationErrorKind {
+    DataBounds {
+        data_format: DataFormat,
+        coord_type: CoordType,
+    },
+    CoordUnitsOnHeader {
+        kind: HeaderField,
+    },
+    CoordUnitsOnData {
+        lineno: usize,
+        column: usize,
+    },
+    NoRow {
+        nrows: usize,
+        actual: usize,
+    },
+    NoCols {
+        ncols: usize,
+        actual: Option<usize>,
+    },
+}
+
+impl ValidationError {
+    #[cold]
+    fn new(kind: ValidationErrorKind) -> Self {
+        Self { kind }
+    }
+
+    #[cold]
+    pub(crate) fn data_bounds(data_format: DataFormat, coord_type: CoordType) -> Self {
+        Self::new(ValidationErrorKind::DataBounds {
+            data_format,
+            coord_type,
+        })
+    }
+
+    #[cold]
+    pub(crate) fn coord_units_header(kind: HeaderField) -> Self {
+        Self::new(ValidationErrorKind::CoordUnitsOnHeader { kind })
+    }
+    #[cold]
+    pub(crate) fn coord_units_data(lineno: usize, column: usize) -> Self {
+        Self::new(ValidationErrorKind::CoordUnitsOnData { lineno, column })
+    }
+
+    #[cold]
+    pub(crate) fn nrows(nrows: usize, actual: usize) -> Self {
+        Self::new(ValidationErrorKind::NoRow { nrows, actual })
+    }
+    #[cold]
+    pub(crate) fn ncols(ncols: usize, actual: Option<usize>) -> Self {
+        Self::new(ValidationErrorKind::NoCols { ncols, actual })
+    }
+}
+
+impl Error for ValidationError {}
+
+impl Display for ValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.kind, f)
+    }
+}
+
+impl Display for ValidationErrorKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Self::DataBounds {
+                data_format,
+                coord_type,
+            } => write!(
+                f,
+                "unexpected `data_bounds`, expected DataBounds::{}{}",
+                match data_format {
+                    DataFormat::Grid => "Grid",
+                    DataFormat::Sparse => "Sparse",
+                },
+                match coord_type {
+                    CoordType::Geodetic => "Geodetic",
+                    CoordType::Projected => "Projected",
+                }
+            ),
+            Self::CoordUnitsOnHeader { kind } => {
+                write!(f, "unexpected data format on `{}`", kind)
+            }
+            Self::CoordUnitsOnData { lineno, column } => write!(
+                f,
+                "unexpected data format on data (row: {}, column: {})",
+                lineno, column
+            ),
+            Self::NoRow { nrows, actual } => write!(
+                f,
+                "unexpected data length, nrows: {} but actual: {}",
+                nrows, actual
+            ),
+            Self::NoCols { ncols, actual } => match actual {
+                None => write!(f, "unexpected data length, ncols: {}", ncols),
+                Some(a) => write!(
+                    f,
+                    "unexpected data length, ncols: {} but actual: {}",
+                    ncols, a
+                ),
+            },
+        }
     }
 }

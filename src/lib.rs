@@ -80,7 +80,7 @@ use std::borrow::Cow;
 use ::serde::{Deserialize, Serialize};
 
 #[doc(inline)]
-pub use error::{ParseError, ParseValueError};
+pub use error::{ParseError, ParseValueError, ValidationError};
 #[doc(inline)]
 pub use parse::from_str;
 
@@ -90,6 +90,7 @@ mod parse;
 #[cfg(feature = "serde")]
 mod serde;
 mod token;
+mod validation;
 
 /// ISG format
 #[derive(Debug, PartialEq, Clone)]
