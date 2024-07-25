@@ -10,6 +10,7 @@ const END_OF_HEADER: &str = "end_of_head";
 
 #[derive(Debug)]
 pub(crate) struct Token<'a> {
+    /// Debugging information, parser ignores the value
     #[allow(dead_code)]
     pub(crate) kind: TokenKind,
     pub(crate) value: Cow<'a, str>,
@@ -30,6 +31,7 @@ pub(crate) enum TokenKind {
 
 #[derive(Debug)]
 pub(crate) struct Tokenizer<'a> {
+    /// for comment only
     str: &'a str,
     lines: Peekable<Enumerate<Lines<'a>>>,
     lineno: usize,
@@ -81,6 +83,10 @@ impl<'a> Iterator for DataRowIterator<'a> {
     }
 }
 
+// ISG format is almost fixed format.
+// Therefore, we deside user manages tokenizer mode.
+// The resulting `TokenKind` is for debugging,
+// it does not effect parsing.
 impl<'a> Tokenizer<'a> {
     pub(crate) fn new(s: &'a str) -> Self {
         Self {
@@ -91,8 +97,11 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub(crate) fn tokenize_comment(&mut self) -> Result<Token<'a>, ParseError> {
+        // Counts comment length for Cow
         let mut chars = 0;
         loop {
+            // Not consume lines,
+            // For does not consume `begin_of_head` line
             match self.lines.peek() {
                 None => return Err(ParseError::missing_boh()),
                 Some((_, line)) if line.starts_with(BEGIN_OF_HEAD) => {
@@ -100,11 +109,15 @@ impl<'a> Tokenizer<'a> {
                     return Ok(Token {
                         kind: TokenKind::Comment,
                         value: s.into(),
+                        // placeholder
                         span: 0..s.len(),
+                        // placeholder
                         lineno: 0,
                     });
                 }
                 Some(_) => {
+                    // Valid comment line
+                    // Consume lines here
                     let (lineno, line) = self.lines.next().unwrap();
                     self.lineno = lineno;
                     chars += line.len() + 1;
@@ -116,6 +129,7 @@ impl<'a> Tokenizer<'a> {
     pub(crate) fn tokenize_begin_of_header(&mut self) -> Result<Token<'a>, ParseError> {
         match self.lines.next() {
             None => Err(ParseError::missing_boh()),
+            // Consumes `begin_of_head` line
             Some((lineno, s)) => {
                 self.lineno = lineno;
                 if s.starts_with(BEGIN_OF_HEAD) {
@@ -135,10 +149,14 @@ impl<'a> Tokenizer<'a> {
     pub(crate) fn tokenize_header(
         &mut self,
     ) -> Result<Option<(Token<'a>, Token<'a>, Token<'a>)>, ParseError> {
+        // Not consume lines,
+        // for does not consume `end_of_head` line
         match self.lines.peek() {
             None => Err(ParseError::missing_eoh()),
+            // Returns `Ok(None)` when header ends
             Some((_, line)) if line.starts_with(END_OF_HEADER) => Ok(None),
             Some(_) => {
+                // Consume lines here
                 let (lineno, line) = self.lines.next().expect("already checked");
                 match line.find([':', '=']) {
                     None => Err(ParseError::missing_sep(0..line.len(), lineno + 1)),
@@ -148,7 +166,7 @@ impl<'a> Tokenizer<'a> {
                         let key = Token {
                             kind: TokenKind::Key,
                             value: line[0..pos].trim().into(),
-                            span: start..end + 1,
+                            span: start..(end + 1),
                             lineno: lineno + 1,
                         };
 
@@ -164,7 +182,7 @@ impl<'a> Tokenizer<'a> {
                         let value = Token {
                             kind: TokenKind::Value,
                             value: line[(pos + 1)..].trim().into(),
-                            span: pos + 1 + start..pos + 1 + end + 1,
+                            span: (pos + 1 + start)..(pos + 1 + end + 1),
                             lineno: lineno + 1,
                         };
 
@@ -178,6 +196,7 @@ impl<'a> Tokenizer<'a> {
     pub(crate) fn tokenize_end_of_header(&mut self) -> Result<Token<'a>, ParseError> {
         match self.lines.next() {
             None => Err(ParseError::missing_eoh()),
+            // Consumes `end_of_head` line
             Some((lineno, s)) => {
                 if s.starts_with(END_OF_HEADER) {
                     Ok(Token {
@@ -194,8 +213,10 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub(crate) fn tokenize_data(&mut self) -> Option<DataRowIterator> {
+        // Returns `None` when data ends
         self.lines.next().map(|(lineno, line)| DataRowIterator {
             line,
+            // placeholder
             pos: 0,
             lineno: lineno + 1,
         })
