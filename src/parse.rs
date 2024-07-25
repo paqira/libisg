@@ -261,6 +261,15 @@ struct HeaderStore<'a> {
     isg_format: Option<Token<'a>>,
 }
 
+impl CoordUnits {
+    fn check(&self, coord: &Coord) -> bool {
+        match self {
+            Self::DMS => matches!(coord, Coord::DMS { .. }),
+            Self::Deg | Self::Meters | Self::Feet => matches!(coord, Coord::Dec(..)),
+        }
+    }
+}
+
 impl<'a> HeaderStore<'a> {
     fn from_tokenizer(tokenizer: &mut Tokenizer<'a>) -> Result<Self, ParseError> {
         let mut this = Self::default();
@@ -384,280 +393,10 @@ impl<'a> HeaderStore<'a> {
 
         let data_bounds = match coord_type {
             CoordType::Geodetic => {
-                if [
-                    self.north_min.as_ref(),
-                    self.north_max.as_ref(),
-                    self.east_min.as_ref(),
-                    self.east_max.as_ref(),
-                    self.delta_north.as_ref(),
-                    self.delta_east.as_ref(),
-                ]
-                .iter()
-                .any(Option::is_some)
-                {
-                    return Err(ParseError::invalid_data_bounds());
-                }
-
-                let lat_min = self
-                    .lat_min
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::LatMin))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::LatMin,
-                            self.lat_min.as_ref().unwrap(),
-                        )
-                    })?;
-                let lat_max = self
-                    .lat_max
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::LatMax))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::LatMax,
-                            self.lat_max.as_ref().unwrap(),
-                        )
-                    })?;
-                let lon_min = self
-                    .lon_min
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::LonMin))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::LonMin,
-                            self.lon_min.as_ref().unwrap(),
-                        )
-                    })?;
-                let lon_max = self
-                    .lon_max
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::LonMax))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::LonMax,
-                            self.lon_max.as_ref().unwrap(),
-                        )
-                    })?;
-                let delta_lat = match self
-                    .delta_lat
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::DeltaLat))?
-                    .value
-                    .as_ref()
-                {
-                    "---" => None,
-                    s => Some(s.parse().map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::DeltaLat,
-                            self.delta_lat.as_ref().unwrap(),
-                        )
-                    })?),
-                };
-                let delta_lon = match self
-                    .delta_lon
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::DeltaLon))?
-                    .value
-                    .as_ref()
-                {
-                    "---" => None,
-                    s => Some(s.parse().map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::DeltaLon,
-                            self.delta_lon.as_ref().unwrap(),
-                        )
-                    })?),
-                };
-
-                match data_format {
-                    DataFormat::Grid => DataBounds::GridGeodetic {
-                        lat_min,
-                        lat_max,
-                        lon_min,
-                        lon_max,
-                        delta_lat: delta_lat.ok_or(ParseError::invalid_header_value(
-                            HeaderField::DeltaLat,
-                            &self.delta_lat.expect("already checked"),
-                        ))?,
-                        delta_lon: delta_lon.ok_or(ParseError::invalid_header_value(
-                            HeaderField::DeltaLon,
-                            &self.delta_lon.expect("already checked"),
-                        ))?,
-                    },
-                    DataFormat::Sparse => {
-                        if delta_lat.is_some() {
-                            return Err(ParseError::invalid_header_value(
-                                HeaderField::DeltaLat,
-                                &self.delta_lat.expect("already checked"),
-                            ));
-                        };
-                        if delta_lon.is_some() {
-                            return Err(ParseError::invalid_header_value(
-                                HeaderField::DeltaLon,
-                                &self.delta_lon.expect("already checked"),
-                            ));
-                        };
-
-                        DataBounds::SparseGeodetic {
-                            lat_min,
-                            lat_max,
-                            lon_min,
-                            lon_max,
-                        }
-                    }
-                }
+                DataBounds::with_geodetic(&self, &data_format, &coord_units, &coord_type)?
             }
             CoordType::Projected => {
-                if [
-                    self.lat_min.as_ref(),
-                    self.lat_max.as_ref(),
-                    self.lon_min.as_ref(),
-                    self.lon_max.as_ref(),
-                    self.delta_lat.as_ref(),
-                    self.delta_lon.as_ref(),
-                ]
-                .iter()
-                .any(Option::is_some)
-                {
-                    return Err(ParseError::invalid_data_bounds());
-                }
-
-                let north_min = self
-                    .north_min
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::NorthMin))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::NorthMin,
-                            self.north_min.as_ref().unwrap(),
-                        )
-                    })?;
-                let north_max = self
-                    .north_max
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::NorthMax))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::NorthMax,
-                            self.north_max.as_ref().unwrap(),
-                        )
-                    })?;
-                let east_min = self
-                    .east_min
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::EastMin))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::EastMin,
-                            self.east_min.as_ref().unwrap(),
-                        )
-                    })?;
-                let east_max = self
-                    .east_max
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::EastMax))?
-                    .value
-                    .parse()
-                    .map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::EastMax,
-                            self.east_max.as_ref().unwrap(),
-                        )
-                    })?;
-                let delta_north = match self
-                    .delta_north
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::DeltaNorth))?
-                    .value
-                    .as_ref()
-                {
-                    "---" => None,
-                    s => Some(s.parse().map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::DeltaNorth,
-                            self.delta_north.as_ref().unwrap(),
-                        )
-                    })?),
-                };
-                let delta_east = match self
-                    .delta_east
-                    .as_ref()
-                    .ok_or(ParseError::missing_header(HeaderField::DeltaEast))?
-                    .value
-                    .as_ref()
-                {
-                    "---" => None,
-                    s => Some(s.parse().map_err(|e| {
-                        ParseError::from_parse_value_err(
-                            e,
-                            HeaderField::DeltaEast,
-                            self.delta_east.as_ref().unwrap(),
-                        )
-                    })?),
-                };
-
-                match coord_type {
-                    CoordType::Geodetic => DataBounds::GridProjected {
-                        north_min,
-                        north_max,
-                        east_min,
-                        east_max,
-                        delta_north: delta_north.ok_or(ParseError::invalid_header_value(
-                            HeaderField::DeltaNorth,
-                            &self.delta_north.expect("already checked"),
-                        ))?,
-                        delta_east: delta_east.ok_or(ParseError::invalid_header_value(
-                            HeaderField::DeltaEast,
-                            &self.delta_east.expect("already checked"),
-                        ))?,
-                    },
-                    CoordType::Projected => {
-                        if delta_north.is_some() {
-                            return Err(ParseError::invalid_header_value(
-                                HeaderField::DeltaNorth,
-                                &self.delta_north.expect("already checked"),
-                            ));
-                        };
-                        if delta_east.is_some() {
-                            return Err(ParseError::invalid_header_value(
-                                HeaderField::DeltaEast,
-                                &self.delta_east.expect("already checked"),
-                            ));
-                        };
-
-                        DataBounds::SparseProjected {
-                            north_min,
-                            north_max,
-                            east_min,
-                            east_max,
-                        }
-                    }
-                }
+                DataBounds::with_projected(&self, &data_format, &coord_units, &coord_type)?
             }
         };
 
@@ -818,6 +557,424 @@ impl<'a> HeaderStore<'a> {
             },
             ISG_format,
         })
+    }
+}
+
+impl DataBounds {
+    fn with_geodetic(
+        header: &HeaderStore,
+        data_format: &DataFormat,
+        coord_units: &CoordUnits,
+        coord_type: &CoordType,
+    ) -> Result<Self, ParseError> {
+        if header.north_min.is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::NorthMin,
+                coord_type.clone(),
+                header.north_min.as_ref().unwrap(),
+            ));
+        } else if header.north_max.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::NorthMax,
+                coord_type.clone(),
+                header.north_max.as_ref().unwrap(),
+            ));
+        } else if header.east_min.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::EastMin,
+                coord_type.clone(),
+                header.east_min.as_ref().unwrap(),
+            ));
+        } else if header.east_max.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::EastMax,
+                coord_type.clone(),
+                header.east_max.as_ref().unwrap(),
+            ));
+        } else if header.delta_north.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::DeltaNorth,
+                coord_type.clone(),
+                header.delta_north.as_ref().unwrap(),
+            ));
+        } else if header.delta_east.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::DeltaEast,
+                coord_type.clone(),
+                header.delta_east.as_ref().unwrap(),
+            ));
+        }
+
+        let lat_min = header
+            .lat_min
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::LatMin))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::LatMin,
+                    header.lat_min.as_ref().unwrap(),
+                )
+            })?;
+
+        let lat_max = header
+            .lat_max
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::LatMax))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::LatMax,
+                    header.lat_max.as_ref().unwrap(),
+                )
+            })?;
+
+        let lon_min = header
+            .lon_min
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::LonMin))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::LonMin,
+                    header.lon_min.as_ref().unwrap(),
+                )
+            })?;
+
+        let lon_max = header
+            .lon_max
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::LonMax))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::LonMax,
+                    header.lon_max.as_ref().unwrap(),
+                )
+            })?;
+
+        if !coord_units.check(&lat_min) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::LatMin,
+                header.lat_min.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&lat_max) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::LatMax,
+                header.lat_max.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&lon_min) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::LonMin,
+                header.lon_min.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&lon_max) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::LonMax,
+                header.lon_max.as_ref().unwrap(),
+            ));
+        }
+
+        match data_format {
+            DataFormat::Grid => {
+                let delta_lat = header
+                    .delta_lat
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaLat))?
+                    .value
+                    .as_ref()
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaLat,
+                            header.delta_lat.as_ref().unwrap(),
+                        )
+                    })?;
+
+                let delta_lon = header
+                    .delta_lon
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaLon))?
+                    .value
+                    .as_ref()
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaLon,
+                            header.delta_lon.as_ref().unwrap(),
+                        )
+                    })?;
+
+                if !coord_units.check(&delta_lat) {
+                    return Err(ParseError::invalid_header_value(
+                        HeaderField::DeltaLat,
+                        header.delta_lat.as_ref().unwrap(),
+                    ));
+                } else if !coord_units.check(&delta_lon) {
+                    return Err(ParseError::invalid_header_value(
+                        HeaderField::DeltaLon,
+                        header.delta_lon.as_ref().unwrap(),
+                    ));
+                }
+
+                Ok(DataBounds::GridGeodetic {
+                    lat_min,
+                    lat_max,
+                    lon_min,
+                    lon_max,
+                    delta_lat,
+                    delta_lon,
+                })
+            }
+            DataFormat::Sparse => {
+                if !header
+                    .delta_lat
+                    .as_ref()
+                    .map_or(true, |v| v.value.eq("---"))
+                {
+                    return Err(ParseError::from_parse_value_err(
+                        ParseValueError::new(header.delta_lat.as_ref().unwrap().value.as_ref()),
+                        HeaderField::DeltaLat,
+                        header.delta_lat.as_ref().unwrap(),
+                    ));
+                } else if !header
+                    .delta_lon
+                    .as_ref()
+                    .map_or(true, |v| v.value.eq("---"))
+                {
+                    return Err(ParseError::from_parse_value_err(
+                        ParseValueError::new(header.delta_lon.as_ref().unwrap().value.as_ref()),
+                        HeaderField::DeltaLon,
+                        header.delta_lon.as_ref().unwrap(),
+                    ));
+                }
+
+                Ok(DataBounds::SparseGeodetic {
+                    lat_min,
+                    lat_max,
+                    lon_min,
+                    lon_max,
+                })
+            }
+        }
+    }
+
+    fn with_projected(
+        header: &HeaderStore,
+        data_format: &DataFormat,
+        coord_units: &CoordUnits,
+        coord_type: &CoordType,
+    ) -> Result<Self, ParseError> {
+        if header.lat_min.is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::LatMin,
+                coord_type.clone(),
+                header.lat_min.as_ref().unwrap(),
+            ));
+        } else if header.lat_max.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::LatMax,
+                coord_type.clone(),
+                header.lat_max.as_ref().unwrap(),
+            ));
+        } else if header.lon_min.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::LonMin,
+                coord_type.clone(),
+                header.lon_min.as_ref().unwrap(),
+            ));
+        } else if header.lon_max.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::LonMax,
+                coord_type.clone(),
+                header.lon_max.as_ref().unwrap(),
+            ));
+        } else if header.delta_lat.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::DeltaLat,
+                coord_type.clone(),
+                header.delta_lat.as_ref().unwrap(),
+            ));
+        } else if header.delta_lon.as_ref().is_some() {
+            return Err(ParseError::invalid_data_bounds(
+                HeaderField::DeltaLon,
+                coord_type.clone(),
+                header.delta_lon.as_ref().unwrap(),
+            ));
+        }
+
+        let north_min = header
+            .north_min
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::NorthMin))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::NorthMin,
+                    header.north_min.as_ref().unwrap(),
+                )
+            })?;
+
+        let north_max = header
+            .north_max
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::NorthMax))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::NorthMax,
+                    header.north_max.as_ref().unwrap(),
+                )
+            })?;
+
+        let east_min = header
+            .east_min
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::EastMin))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::EastMin,
+                    header.east_min.as_ref().unwrap(),
+                )
+            })?;
+
+        let east_max = header
+            .east_max
+            .as_ref()
+            .ok_or(ParseError::missing_header(HeaderField::EastMax))?
+            .value
+            .parse()
+            .map_err(|e| {
+                ParseError::from_parse_value_err(
+                    e,
+                    HeaderField::EastMax,
+                    header.east_max.as_ref().unwrap(),
+                )
+            })?;
+
+        if !coord_units.check(&north_min) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::NorthMin,
+                header.north_min.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&north_max) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::NorthMax,
+                header.north_max.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&east_min) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::EastMin,
+                header.east_min.as_ref().unwrap(),
+            ));
+        } else if !coord_units.check(&east_max) {
+            return Err(ParseError::invalid_header_value(
+                HeaderField::EastMax,
+                header.east_max.as_ref().unwrap(),
+            ));
+        }
+
+        match data_format {
+            DataFormat::Grid => {
+                let delta_north = header
+                    .delta_north
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaNorth))?
+                    .value
+                    .as_ref()
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaNorth,
+                            header.delta_north.as_ref().unwrap(),
+                        )
+                    })?;
+
+                let delta_east = header
+                    .delta_east
+                    .as_ref()
+                    .ok_or(ParseError::missing_header(HeaderField::DeltaEast))?
+                    .value
+                    .as_ref()
+                    .parse()
+                    .map_err(|e| {
+                        ParseError::from_parse_value_err(
+                            e,
+                            HeaderField::DeltaEast,
+                            header.delta_east.as_ref().unwrap(),
+                        )
+                    })?;
+
+                if !coord_units.check(&delta_north) {
+                    return Err(ParseError::invalid_header_value(
+                        HeaderField::DeltaNorth,
+                        header.delta_north.as_ref().unwrap(),
+                    ));
+                } else if !coord_units.check(&delta_east) {
+                    return Err(ParseError::invalid_header_value(
+                        HeaderField::DeltaEast,
+                        header.delta_east.as_ref().unwrap(),
+                    ));
+                }
+
+                Ok(DataBounds::GridProjected {
+                    north_min,
+                    north_max,
+                    east_min,
+                    east_max,
+                    delta_north,
+                    delta_east,
+                })
+            }
+            DataFormat::Sparse => {
+                if !header
+                    .delta_north
+                    .as_ref()
+                    .map_or(true, |v| v.value.eq("---"))
+                {
+                    return Err(ParseError::from_parse_value_err(
+                        ParseValueError::new(header.delta_north.as_ref().unwrap().value.as_ref()),
+                        HeaderField::DeltaNorth,
+                        header.delta_north.as_ref().unwrap(),
+                    ));
+                } else if !header
+                    .delta_east
+                    .as_ref()
+                    .map_or(true, |v| v.value.eq("---"))
+                {
+                    return Err(ParseError::from_parse_value_err(
+                        ParseValueError::new(header.delta_east.as_ref().unwrap().value.as_ref()),
+                        HeaderField::DeltaEast,
+                        header.delta_east.as_ref().unwrap(),
+                    ));
+                }
+
+                Ok(DataBounds::SparseProjected {
+                    north_min,
+                    north_max,
+                    east_min,
+                    east_max,
+                })
+            }
+        }
     }
 }
 

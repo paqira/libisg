@@ -283,7 +283,7 @@ end_of_head =================================================="##;
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected data bounds (lat max etc.)"
+        "unexpected header key: `east max` with `coord type` is `geodetic` (line: 20, column: 19 to 30)"
     );
 }
 

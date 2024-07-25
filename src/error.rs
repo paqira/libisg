@@ -4,6 +4,7 @@ use std::ops::Range;
 
 use crate::parse::HeaderField;
 use crate::token::Token;
+use crate::CoordType;
 
 /// Error on parsing ISG format
 #[derive(Debug)]
@@ -30,7 +31,7 @@ impl ParseError {
                 | ParseErrorKind::MissingHeaderKey { .. }
                 | ParseErrorKind::DuplicatedHeaderKey { .. }
                 | ParseErrorKind::UnexpectedHeaderValue { .. }
-                | ParseErrorKind::UnexpectedDataBounds
+                | ParseErrorKind::UnexpectedDataBounds { .. }
         )
     }
 
@@ -80,7 +81,10 @@ pub(crate) enum ParseErrorKind {
     },
 
     /// Invalid (inconsistent) data bound (`lat max` etc.)
-    UnexpectedDataBounds,
+    UnexpectedDataBounds {
+        key: HeaderField,
+        coord_type: CoordType,
+    },
 
     /// Invalid data found
     UnexpectedData {
@@ -180,8 +184,16 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn invalid_data_bounds() -> Self {
-        Self::new(ParseErrorKind::UnexpectedDataBounds)
+    pub(crate) fn invalid_data_bounds(
+        key: HeaderField,
+        coord_type: CoordType,
+        token: &Token,
+    ) -> Self {
+        Self::with_span(
+            ParseErrorKind::UnexpectedDataBounds { key, coord_type },
+            token.span.clone(),
+            token.lineno,
+        )
     }
 
     #[cold]
@@ -223,8 +235,7 @@ impl Display for ParseError {
         match &self.kind {
             ParseErrorKind::MissingBeginOfHead
             | ParseErrorKind::MissingEndOfHead
-            | ParseErrorKind::MissingHeaderKey { .. }
-            | ParseErrorKind::UnexpectedDataBounds { .. } => Display::fmt(&self.kind, f),
+            | ParseErrorKind::MissingHeaderKey { .. } => Display::fmt(&self.kind, f),
             ParseErrorKind::MissingSeparator
             | ParseErrorKind::MissingData { .. }
             | ParseErrorKind::UnexpectedSparseData => {
@@ -233,6 +244,7 @@ impl Display for ParseError {
             ParseErrorKind::UnexpectedHeaderKey { .. }
             | ParseErrorKind::DuplicatedHeaderKey { .. }
             | ParseErrorKind::UnexpectedHeaderValue { .. }
+            | ParseErrorKind::UnexpectedDataBounds { .. }
             | ParseErrorKind::UnexpectedData { .. } => {
                 write!(
                     f,
@@ -260,7 +272,11 @@ impl Display for ParseErrorKind {
                 None => write!(f, "unexpected header value on `{}`", kind),
                 Some(e) => write!(f, "{} on `{}`", e, kind),
             },
-            Self::UnexpectedDataBounds => f.write_str("unexpected data bounds (lat max etc.)"),
+            Self::UnexpectedDataBounds { key, coord_type } => write!(
+                f,
+                "unexpected header key: `{}` with `coord type` is `{}`",
+                key, coord_type
+            ),
             Self::UnexpectedData { value } => write!(f, "unexpected data: `{}`", value),
             Self::MissingData { kind } => write!(f, "missing {} column data", kind),
             Self::UnexpectedSparseData => f.write_str("unexpected sparse data"),
