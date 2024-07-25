@@ -16,7 +16,7 @@ name = "test"
 path = "test/test.rs"
 
 [dependencies]
-serde = { version = "1", features = ["derive"] , optional = true}
+serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
 serde_json = { version = "1" }

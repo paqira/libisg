@@ -39,7 +39,6 @@ impl ParseError {
         matches!(
             self.kind,
             ParseErrorKind::UnexpectedData { .. }
-                | ParseErrorKind::MissingData { .. }
                 | ParseErrorKind::LongData { .. }
                 | ParseErrorKind::ShortData { .. }
         )
@@ -64,17 +63,11 @@ pub(crate) enum ParseErrorKind {
     MissingSeparator,
 
     /// Invalid header key
-    UnexpectedHeaderKey {
-        value: Box<str>,
-    },
+    UnexpectedHeaderKey { value: Box<str> },
     /// Missing header field
-    MissingHeaderKey {
-        kind: HeaderField,
-    },
+    MissingHeaderKey { kind: HeaderField },
     /// Duplicated header field
-    DuplicatedHeaderKey {
-        kind: HeaderField,
-    },
+    DuplicatedHeaderKey { kind: HeaderField },
     /// Invalid header value
     UnexpectedHeaderValue {
         kind: HeaderField,
@@ -88,12 +81,7 @@ pub(crate) enum ParseErrorKind {
     },
 
     /// Invalid data found
-    UnexpectedData {
-        value: Box<str>,
-    },
-    MissingData {
-        kind: DataColumnKind,
-    },
+    UnexpectedData { value: Box<str> },
     ShortData {
         direction: DataDirection,
         expected: usize,
@@ -216,11 +204,6 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn missing_data(kind: DataColumnKind, lineno: usize) -> Self {
-        Self::with_span(ParseErrorKind::MissingData { kind }, 0..0, lineno)
-    }
-
-    #[cold]
     pub(crate) fn short_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
         Self::with_span(
             ParseErrorKind::ShortData {
@@ -272,7 +255,6 @@ impl Display for ParseError {
                 ..
             } => Display::fmt(&self.kind, f),
             ParseErrorKind::MissingSeparator
-            | ParseErrorKind::MissingData { .. }
             | ParseErrorKind::LongData {
                 direction: DataDirection::Column,
                 ..
@@ -320,7 +302,6 @@ impl Display for ParseErrorKind {
                 key, coord_type
             ),
             Self::UnexpectedData { value } => write!(f, "unexpected data: `{}`", value),
-            Self::MissingData { kind } => write!(f, "missing {} column data", kind),
             Self::ShortData {
                 direction,
                 expected,
@@ -339,23 +320,6 @@ impl Display for ParseErrorKind {
                     write!(f, "long data column, expected {} column(s)", expected)
                 }
             },
-        }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub(crate) enum DataColumnKind {
-    First,
-    Second,
-    Third,
-}
-
-impl Display for DataColumnKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self {
-            DataColumnKind::First => f.write_str("first"),
-            DataColumnKind::Second => f.write_str("second"),
-            DataColumnKind::Third => f.write_str("third"),
         }
     }
 }

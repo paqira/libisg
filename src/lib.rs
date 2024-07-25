@@ -4,15 +4,26 @@
 //! use std::fs;
 //!
 //! use libisg;
-//! use libisg::{Data, ISG};
+//! use libisg::{Data, DataBounds, ISG};
 //!
 //! let s = fs::read_to_string("file.isg").unwrap();
+//!
 //! let isg = libisg::from_str(&s).unwrap();
+//!
+//! // use data
+//! let (a_max, b_max, delta_a, delta_b) = match isg.header.data_bounds {
+//!     DataBounds::GridGeodetic { lat_max, lon_max, delta_lat, delta_lon, .. } => {
+//!         (lat_max, lon_max, delta_lat, delta_lon)
+//!     },
+//!     _ => unimplemented!("`file.isg` is grid geodetic"),
+//! };
 //!
 //! match &isg.data {
 //!     Data::Grid(data) => {
 //!         for (nrow, row) in data.iter().enumerate() {
 //!             for (ncol, value) in row.iter().enumerate() {
+//!                 let a = a_max - delta_a * nrow;
+//!                 let b = b_max + delta_b * ncol;
 //!                 // do something
 //!             }
 //!         }
@@ -24,15 +35,6 @@
 //!         }
 //!     }
 //! }
-//!
-//! // serialize to ISG-format
-//! assert_eq!(s, isg.to_string());
-//!
-//! // serialize/deserialize by serde
-//! use serde_json;
-//!
-//! let json = serde_json::to_string(&isg).unwrap();
-//! let isg: ISG = serde_json::from_str(&json).unwrap();
 //! ```
 //!
 //! # Serialize/Deserialize
@@ -74,7 +76,8 @@
 //! // deserialize
 //! assert_eq!(isg, serde_json::from_str(&json).unwrap());
 //! ```
-use std::borrow::Cow;
+
+// TODO: support v1.1 format?
 
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
@@ -84,6 +87,7 @@ pub use error::{ParseError, ParseValueError, ValidationError};
 #[doc(inline)]
 pub use parse::from_str;
 
+mod arithm;
 mod display;
 mod error;
 mod parse;

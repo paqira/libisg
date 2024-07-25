@@ -10,6 +10,7 @@ const END_OF_HEADER: &str = "end_of_head";
 
 #[derive(Debug)]
 pub(crate) struct Token<'a> {
+    #[allow(dead_code)]
     pub(crate) kind: TokenKind,
     pub(crate) value: Cow<'a, str>,
     pub(crate) span: Range<usize>,
