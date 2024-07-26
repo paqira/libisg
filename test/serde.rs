@@ -2,7 +2,7 @@ use serde_test::{assert_tokens, Token};
 
 use libisg::{
     Coord, CoordType, CoordUnits, CreationDate, Data, DataBounds, DataFormat, DataOrdering,
-    DataType, DataUnit, Header, ModelType, TideSystem, ISG,
+    DataType, DataUnits, Header, ModelType, TideSystem, ISG,
 };
 
 #[test]
@@ -14,7 +14,7 @@ fn example_1() {
             model_year: Some("2020".into()),
             model_type: ModelType::Gravimetric.into(),
             data_type: DataType::Geoid.into(),
-            data_units: DataUnit::Meters.into(),
+            data_units: DataUnits::Meters.into(),
             data_format: DataFormat::Grid,
             data_ordering: DataOrdering::N2SW2E.into(),
             ref_ellipsoid: Some("GRS80".into()),
@@ -113,7 +113,7 @@ fn example_1() {
             Token::Str("data_units"),
             Token::Some,
             Token::UnitVariant {
-                name: "DataUnit",
+                name: "DataUnits",
                 variant: "meters",
             },
             //
@@ -355,7 +355,7 @@ fn example_2() {
             model_year: Some("2020".into()),
             model_type: ModelType::Gravimetric.into(),
             data_type: DataType::Geoid.into(),
-            data_units: DataUnit::Meters.into(),
+            data_units: DataUnits::Meters.into(),
             data_format: DataFormat::Grid,
             data_ordering: DataOrdering::N2SW2E.into(),
             ref_ellipsoid: Some("GRS80".into()),
@@ -454,7 +454,7 @@ fn example_2() {
             Token::Str("data_units"),
             Token::Some,
             Token::UnitVariant {
-                name: "DataUnit",
+                name: "DataUnits",
                 variant: "meters",
             },
             //

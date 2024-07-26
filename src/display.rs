@@ -341,7 +341,7 @@ impl Display for DataType {
     }
 }
 
-impl Display for DataUnit {
+impl Display for DataUnits {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Meters => "meters",

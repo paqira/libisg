@@ -1,7 +1,7 @@
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{
-    Coord, CoordType, CoordUnits, DataFormat, DataOrdering, DataType, DataUnit, ModelType,
+    Coord, CoordType, CoordUnits, DataFormat, DataOrdering, DataType, DataUnits, ModelType,
     TideSystem,
 };
 
@@ -180,12 +180,12 @@ impl_ser!(
 impl_de!(DataType);
 
 impl_ser!(
-    DataUnit,
+    DataUnits,
     Meters => (0, "meters"),
     Feet => (1, "feet")
 );
 
-impl_de!(DataUnit);
+impl_de!(DataUnits);
 
 impl_ser!(
     DataFormat,
@@ -315,16 +315,16 @@ mod test {
     #[test]
     fn serde_data_unit() {
         assert_tokens(
-            &DataUnit::Meters,
+            &DataUnits::Meters,
             &[Token::UnitVariant {
-                name: "DataUnit",
+                name: "DataUnits",
                 variant: "meters",
             }],
         );
         assert_tokens(
-            &DataUnit::Feet,
+            &DataUnits::Feet,
             &[Token::UnitVariant {
-                name: "DataUnit",
+                name: "DataUnits",
                 variant: "feet",
             }],
         );

@@ -139,7 +139,7 @@ pub struct Header {
     pub model_year: Option<String>,
     pub model_type: Option<ModelType>,
     pub data_type: Option<DataType>,
-    pub data_units: Option<DataUnit>,
+    pub data_units: Option<DataUnits>,
     pub data_format: DataFormat,
     pub data_ordering: Option<DataOrdering>,
     pub ref_ellipsoid: Option<String>,
@@ -241,7 +241,7 @@ pub enum DataType {
 
 /// Value of `data units`
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub enum DataUnit {
+pub enum DataUnits {
     Meters,
     Feet,
 }

@@ -27,7 +27,7 @@ impl FromStr for DataType {
     }
 }
 
-impl FromStr for DataUnit {
+impl FromStr for DataUnits {
     type Err = ParseValueError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
