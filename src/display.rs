@@ -34,221 +34,7 @@ impl Display for ISG {
 
         f.write_str("begin_of_head ================================================\n")?;
 
-        f.write_str("model name     : ")?;
-        match self.header.model_name.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("model year     : ")?;
-        match self.header.model_year.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("model type     : ")?;
-        match self.header.model_type.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(&s.to_string())?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("data type      : ")?;
-        match self.header.data_type.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(&s.to_string())?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("data units     : ")?;
-        match self.header.data_units.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(&s.to_string())?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("data format    : ")?;
-        f.write_str(&self.header.data_format.to_string())?;
-        f.write_char('\n')?;
-
-        f.write_str("data ordering  : ")?;
-        match self.header.data_ordering.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(&s.to_string())?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("ref ellipsoid  : ")?;
-        match self.header.ref_ellipsoid.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("ref frame      : ")?;
-        match self.header.ref_frame.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("height datum   : ")?;
-        match self.header.height_datum.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("tide system    : ")?;
-        match self.header.tide_system.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(&s.to_string())?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("coord type     : ")?;
-        f.write_str(&self.header.coord_type.to_string())?;
-        f.write_char('\n')?;
-
-        f.write_str("coord units    : ")?;
-        f.write_str(&self.header.coord_units.to_string())?;
-        f.write_char('\n')?;
-
-        f.write_str("map projection : ")?;
-        match self.header.map_projection.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("EPSG code      : ")?;
-        match self.header.EPSG_code.as_ref() {
-            None => f.write_str("---")?,
-            Some(s) => f.write_str(s)?,
-        }
-        f.write_char('\n')?;
-
-        match &self.header.data_bounds {
-            DataBounds::GridGeodetic {
-                lat_min,
-                lat_max,
-                lon_min,
-                lon_max,
-                delta_lat,
-                delta_lon,
-            } => {
-                write!(
-                    f,
-                    "lat min        = {}
-lat max        = {}
-lon min        = {}
-lon max        = {}
-delta lat      = {}
-delta lon      = {}\n",
-                    fmt_angle!(lat_min, &self.header.coord_units),
-                    fmt_angle!(lat_max, &self.header.coord_units),
-                    fmt_angle!(lon_min, &self.header.coord_units),
-                    fmt_angle!(lon_max, &self.header.coord_units),
-                    fmt_angle!(delta_lat, &self.header.coord_units),
-                    fmt_angle!(delta_lon, &self.header.coord_units)
-                )?;
-            }
-            DataBounds::GridProjected {
-                north_min,
-                north_max,
-                east_min,
-                east_max,
-                delta_north,
-                delta_east,
-            } => {
-                write!(
-                    f,
-                    "north min        = {}
-north max        = {}
-east min        = {}
-east max        = {}
-delta north      = {}
-delta east      = {}\n",
-                    fmt_angle!(north_min, &self.header.coord_units),
-                    fmt_angle!(north_max, &self.header.coord_units),
-                    fmt_angle!(east_min, &self.header.coord_units),
-                    fmt_angle!(east_max, &self.header.coord_units),
-                    fmt_angle!(delta_north, &self.header.coord_units),
-                    fmt_angle!(delta_east, &self.header.coord_units)
-                )?;
-            }
-            DataBounds::SparseGeodetic {
-                lat_min,
-                lat_max,
-                lon_min,
-                lon_max,
-            } => {
-                write!(
-                    f,
-                    "lat min        = {}
-lat max        = {}
-lon min        = {}
-lon max        = {}
-delta lat      = ---
-delta lon      = ---\n",
-                    fmt_angle!(lat_min, &self.header.coord_units),
-                    fmt_angle!(lat_max, &self.header.coord_units),
-                    fmt_angle!(lon_min, &self.header.coord_units),
-                    fmt_angle!(lon_max, &self.header.coord_units),
-                )?;
-            }
-            DataBounds::SparseProjected {
-                north_min,
-                north_max,
-                east_min,
-                east_max,
-            } => {
-                write!(
-                    f,
-                    "north min        = {}
-north max        = {}
-east min        = {}
-east max        = {}
-delta north      = ---
-delta east      = ---\n",
-                    fmt_angle!(north_min, &self.header.coord_units),
-                    fmt_angle!(north_max, &self.header.coord_units),
-                    fmt_angle!(east_min, &self.header.coord_units),
-                    fmt_angle!(east_max, &self.header.coord_units),
-                )?;
-            }
-        }
-
-        f.write_str("nrows          = ")?;
-        write!(f, "{:>11}", &self.header.nrows)?;
-        f.write_char('\n')?;
-
-        f.write_str("ncols          = ")?;
-        write!(f, "{:>11}", &self.header.ncols)?;
-        f.write_char('\n')?;
-
-        f.write_str("nodata         = ")?;
-        match self.header.nodata.as_ref() {
-            None => f.write_str("---")?,
-            Some(v) => write!(f, " {:10.4}", v)?,
-        }
-        f.write_char('\n')?;
-
-        f.write_str("creation date  = ")?;
-        match self.header.creation_date.as_ref() {
-            None => f.write_str("---")?,
-            Some(v) => {
-                let s = format!("{}/{:02}/{:02}", v.day, v.month, v.year);
-                write!(f, "{:>11}", s)?
-            }
-        }
-        f.write_char('\n')?;
-
-        f.write_str("ISG format     = ")?;
-        write!(f, "{:>11}", &self.header.ISG_format)?;
-        f.write_char('\n')?;
+        Display::fmt(&self.header, f)?;
 
         f.write_str("end_of_head ==================================================\n")?;
 
@@ -286,6 +72,249 @@ delta east      = ---\n",
                 }
             }
         }
+
+        Ok(())
+    }
+}
+
+impl Display for Header {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        macro_rules! fmt_angle {
+            ($angle:expr) => {
+                match $angle {
+                    Coord::DMS {
+                        degree,
+                        minutes,
+                        second,
+                    } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
+                    Coord::Dec(value) => match &self.coord_units {
+                        CoordUnits::Deg => format!("{:11.6}", value),
+                        CoordUnits::DMS => {
+                            format!("{:>11}", value)
+                        }
+                        CoordUnits::Meters | CoordUnits::Feet => {
+                            format!("{:11.3}", value)
+                        }
+                    },
+                }
+            };
+        }
+
+        f.write_str("model name     : ")?;
+        match self.model_name.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("model year     : ")?;
+        match self.model_year.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("model type     : ")?;
+        match self.model_type.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => Display::fmt(s, f)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("data type      : ")?;
+        match self.data_type.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => Display::fmt(s, f)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("data units     : ")?;
+        match self.data_units.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => Display::fmt(s, f)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("data format    : ")?;
+        Display::fmt(&self.data_format, f)?;
+        f.write_char('\n')?;
+
+        f.write_str("data ordering  : ")?;
+        match self.data_ordering.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => Display::fmt(s, f)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("ref ellipsoid  : ")?;
+        match self.ref_ellipsoid.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("ref frame      : ")?;
+        match self.ref_frame.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("height datum   : ")?;
+        match self.height_datum.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("tide system    : ")?;
+        match self.tide_system.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => Display::fmt(s, f)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("coord type     : ")?;
+        Display::fmt(&self.coord_type, f)?;
+        f.write_char('\n')?;
+
+        f.write_str("coord units    : ")?;
+        Display::fmt(&self.coord_units, f)?;
+        f.write_char('\n')?;
+
+        f.write_str("map projection : ")?;
+        match self.map_projection.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("EPSG code      : ")?;
+        match self.EPSG_code.as_ref() {
+            None => f.write_str("---")?,
+            Some(s) => f.write_str(s)?,
+        }
+        f.write_char('\n')?;
+
+        match &self.data_bounds {
+            DataBounds::GridGeodetic {
+                lat_min,
+                lat_max,
+                lon_min,
+                lon_max,
+                delta_lat,
+                delta_lon,
+            } => {
+                write!(
+                    f,
+                    "lat min        = {}
+lat max        = {}
+lon min        = {}
+lon max        = {}
+delta lat      = {}
+delta lon      = {}\n",
+                    fmt_angle!(lat_min),
+                    fmt_angle!(lat_max),
+                    fmt_angle!(lon_min),
+                    fmt_angle!(lon_max),
+                    fmt_angle!(delta_lat),
+                    fmt_angle!(delta_lon),
+                )?;
+            }
+            DataBounds::GridProjected {
+                north_min,
+                north_max,
+                east_min,
+                east_max,
+                delta_north,
+                delta_east,
+            } => {
+                write!(
+                    f,
+                    "north min        = {}
+north max        = {}
+east min        = {}
+east max        = {}
+delta north      = {}
+delta east      = {}\n",
+                    fmt_angle!(north_min),
+                    fmt_angle!(north_max),
+                    fmt_angle!(east_min),
+                    fmt_angle!(east_max),
+                    fmt_angle!(delta_north),
+                    fmt_angle!(delta_east),
+                )?;
+            }
+            DataBounds::SparseGeodetic {
+                lat_min,
+                lat_max,
+                lon_min,
+                lon_max,
+            } => {
+                write!(
+                    f,
+                    "lat min        = {}
+lat max        = {}
+lon min        = {}
+lon max        = {}
+delta lat      = ---
+delta lon      = ---\n",
+                    fmt_angle!(lat_min),
+                    fmt_angle!(lat_max),
+                    fmt_angle!(lon_min),
+                    fmt_angle!(lon_max),
+                )?;
+            }
+            DataBounds::SparseProjected {
+                north_min,
+                north_max,
+                east_min,
+                east_max,
+            } => {
+                write!(
+                    f,
+                    "north min        = {}
+north max        = {}
+east min        = {}
+east max        = {}
+delta north      = ---
+delta east      = ---\n",
+                    fmt_angle!(north_min),
+                    fmt_angle!(north_max),
+                    fmt_angle!(east_min),
+                    fmt_angle!(east_max),
+                )?;
+            }
+        }
+
+        f.write_str("nrows          = ")?;
+        write!(f, "{:>11}", &self.nrows)?;
+        f.write_char('\n')?;
+
+        f.write_str("ncols          = ")?;
+        write!(f, "{:>11}", &self.ncols)?;
+        f.write_char('\n')?;
+
+        f.write_str("nodata         = ")?;
+        match self.nodata.as_ref() {
+            None => f.write_str("---")?,
+            Some(v) => write!(f, " {:10.4}", v)?,
+        }
+        f.write_char('\n')?;
+
+        f.write_str("creation date  = ")?;
+        match self.creation_date.as_ref() {
+            None => f.write_str("---")?,
+            Some(v) => {
+                let s = format!("{}/{:02}/{:02}", v.day, v.month, v.year);
+                write!(f, "{:>11}", s)?
+            }
+        }
+        f.write_char('\n')?;
+
+        f.write_str("ISG format     = ")?;
+        write!(f, "{:>11}", &self.ISG_format)?;
+        f.write_char('\n')?;
 
         Ok(())
     }
@@ -392,7 +421,7 @@ impl Display for Coord {
                 minutes,
                 second,
             } => format!("{}°{:02}'{:02}\"", degree, minutes, second),
-            Coord::Dec(value) => format!("{}", value),
+            Coord::Dec(value) => value.to_string(),
         };
         f.pad(&s)
     }
