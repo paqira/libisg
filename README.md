@@ -1,6 +1,6 @@
 # libisg
 
-Library reading/writing the ISG 2.0-format.
+Library reading/writing the [ISG 2.0-format][Spec].
 
 ```rust
 use std::fs;
@@ -25,7 +25,7 @@ match &isg.data {
         for (nrow, row) in data.iter().enumerate() {
             for (ncol, value) in row.iter().enumerate() {
                 let a = a_max - delta_a * nrow;
-                let b = b_max + delta_b * ncol;
+                let b = b_max - delta_b * ncol;
                 // do something
             }
         }
@@ -50,4 +50,6 @@ MIT or Apache-2.0
 
 ## Reference
 
-Specification: https://www.isgeoid.polimi.it/Geoid/format_specs.html
+Specification: [https://www.isgeoid.polimi.it/Geoid/format_specs.html][Spec]
+
+[Spec]: https://www.isgeoid.polimi.it/Geoid/format_specs.html
