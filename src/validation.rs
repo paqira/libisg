@@ -4,6 +4,8 @@ use crate::{Coord, CoordType, CoordUnits, Data, DataBounds, DataFormat, ISG};
 
 impl ISG {
     /// Return `true` if data if well-formatted
+    ///
+    /// This is equivalent to `self.validate().is_ok()`.
     #[inline]
     pub fn is_valid(&self) -> bool {
         self.validate().is_ok()

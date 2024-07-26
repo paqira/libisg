@@ -105,9 +105,12 @@ mod validation;
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ISG {
+    /// Comment section of ISG
     #[cfg_attr(feature = "serde", serde(default))]
     pub comment: String,
+    /// Header section of ISG
     pub header: Header,
+    /// Data section of ISG
     pub data: Data,
 }
 
@@ -161,7 +164,9 @@ pub struct Header {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Data {
+    /// Grid data
     Grid(Vec<Vec<Option<f64>>>),
+    /// Sparse data
     Sparse(Vec<(Coord, Coord, f64)>),
 }
 
@@ -300,6 +305,7 @@ pub struct CreationDate {
 }
 
 impl CreationDate {
+    /// Makes new [`CreationDate`].
     pub fn new(year: u16, month: u8, day: u8) -> Self {
         Self { year, month, day }
     }
@@ -308,18 +314,18 @@ impl CreationDate {
 /// Represents Coordinate
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Coord {
-    /// For `dms`
+    /// For `dms`.
     DMS {
         degree: i16,
         minutes: u8,
         second: u8,
     },
-    /// For `deg`, `meters` and `feet`
+    /// For `deg`, `meters` and `feet`.
     Dec(f64),
 }
 
 impl Coord {
-    /// Make new [`Coord`]
+    /// Make new [`Coord::DMS`].
     pub fn with_dms(degree: i16, minutes: u8, second: u8) -> Self {
         Self::DMS {
             degree,
@@ -328,7 +334,7 @@ impl Coord {
         }
     }
 
-    /// Make new [`Coord`]
+    /// Make new [`Coord::Dec`].
     pub fn with_dec(value: f64) -> Self {
         Self::Dec(value)
     }
