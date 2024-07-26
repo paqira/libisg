@@ -563,7 +563,7 @@ impl<'a> HeaderStore<'a> {
     }
 }
 
-// mess...
+// TODO: needs refactoring
 impl DataBounds {
     fn with_geodetic(
         header: &HeaderStore,
@@ -1036,7 +1036,6 @@ fn parse_data_grid(
         }
 
         row.shrink_to_fit();
-
         data.push(row);
 
         rno += 1;
