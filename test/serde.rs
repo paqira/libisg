@@ -169,7 +169,7 @@ fn example_1() {
             //
             Token::Str("lat_min"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),
@@ -182,7 +182,7 @@ fn example_1() {
             //
             Token::Str("lat_max"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),
@@ -195,7 +195,7 @@ fn example_1() {
             //
             Token::Str("lon_min"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),
@@ -208,7 +208,7 @@ fn example_1() {
             //
             Token::Str("lon_max"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),
@@ -221,7 +221,7 @@ fn example_1() {
             //
             Token::Str("delta_lat"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),
@@ -234,7 +234,7 @@ fn example_1() {
             //
             Token::Str("delta_lon"),
             Token::Struct {
-                name: "Angle",
+                name: "Coord",
                 len: 3,
             },
             Token::Str("degree"),

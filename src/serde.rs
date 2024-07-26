@@ -19,7 +19,7 @@ impl Serialize for Coord {
             } => {
                 use serde::ser::SerializeStruct;
 
-                let mut s = serializer.serialize_struct("Angle", 3)?;
+                let mut s = serializer.serialize_struct("Coord", 3)?;
                 s.serialize_field("degree", degree)?;
                 s.serialize_field("minutes", minutes)?;
                 s.serialize_field("second", second)?;
@@ -70,12 +70,12 @@ impl<'de> Deserialize<'de> for Coord {
             }
         }
 
-        struct AngleVisitor;
-        impl<'de> de::Visitor<'de> for AngleVisitor {
+        struct CoordVisitor;
+        impl<'de> de::Visitor<'de> for CoordVisitor {
             type Value = Coord;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("enum Angle")
+                formatter.write_str("enum Coord")
             }
 
             fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
@@ -127,7 +127,7 @@ impl<'de> Deserialize<'de> for Coord {
         }
 
         const FIELDS: &[&str] = &["degree", "minutes", "second"];
-        deserializer.deserialize_any(AngleVisitor)
+        deserializer.deserialize_any(CoordVisitor)
     }
 }
 
@@ -251,7 +251,7 @@ mod test {
             &angle,
             &[
                 Token::Struct {
-                    name: "Angle",
+                    name: "Coord",
                     len: 3,
                 },
                 Token::Str("degree"),
