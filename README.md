@@ -1,5 +1,10 @@
 # libisg
 
+[![Crates.io Version](https://img.shields.io/crates/v/libisg?logo=rust)](https://crates.io/crates/libisg)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/paqira/libisg/ci.yaml?logo=GitHub)
+[![docs.rs](https://img.shields.io/docsrs/libisg?logo=rust)](https://docs.rs/libisg/)
+![Crates.io License](https://img.shields.io/crates/l/libisg)
+
 Library reading/writing the [ISG 2.0-format][Spec].
 
 ```rust
