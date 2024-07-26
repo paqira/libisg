@@ -20,32 +20,32 @@ impl ISG {
             (DataFormat::Grid, CoordType::Geodetic) => {
                 if !matches!(&self.header.data_bounds, DataBounds::GridGeodetic { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format.clone(),
-                        self.header.coord_type.clone(),
+                        self.header.data_format,
+                        self.header.coord_type,
                     ));
                 }
             }
             (DataFormat::Grid, CoordType::Projected) => {
                 if !matches!(&self.header.data_bounds, DataBounds::GridProjected { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format.clone(),
-                        self.header.coord_type.clone(),
+                        self.header.data_format,
+                        self.header.coord_type,
                     ));
                 }
             }
             (DataFormat::Sparse, CoordType::Geodetic) => {
                 if !matches!(&self.header.data_bounds, DataBounds::SparseGeodetic { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format.clone(),
-                        self.header.coord_type.clone(),
+                        self.header.data_format,
+                        self.header.coord_type,
                     ));
                 }
             }
             (DataFormat::Sparse, CoordType::Projected) => {
                 if !matches!(&self.header.data_bounds, DataBounds::SparseProjected { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format.clone(),
-                        self.header.coord_type.clone(),
+                        self.header.data_format,
+                        self.header.coord_type,
                     ));
                 }
             }

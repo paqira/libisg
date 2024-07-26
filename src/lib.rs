@@ -194,7 +194,7 @@ impl Clone for Data {
 }
 
 /// Value of `model type`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ModelType {
     Gravimetric,
     Geometric,
@@ -202,28 +202,28 @@ pub enum ModelType {
 }
 
 /// Value of `data type`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DataType {
     Geoid,
     QuasiGeoid,
 }
 
 /// Value of `data units`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DataUnit {
     Meters,
     Feet,
 }
 
 /// Value of `data format`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DataFormat {
     Grid,
     Sparse,
 }
 
 /// Value of `data ordering`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum DataOrdering {
     N2SW2E,
     LatLonN,
@@ -233,7 +233,7 @@ pub enum DataOrdering {
 }
 
 /// Value of `tide system`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum TideSystem {
     TideFree,
     MeanTide,
@@ -241,14 +241,14 @@ pub enum TideSystem {
 }
 
 /// Value of `coord type`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CoordType {
     Geodetic,
     Projected,
 }
 
 /// Value of `coord units`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CoordUnits {
     DMS,
     Deg,
@@ -291,7 +291,7 @@ pub enum DataBounds {
 }
 
 /// Value of `creation date`
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CreationDate {
     pub year: u16,

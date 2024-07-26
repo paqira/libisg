@@ -574,37 +574,37 @@ impl DataBounds {
         if header.north_min.is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::NorthMin,
-                coord_type.clone(),
+                *coord_type,
                 header.north_min.as_ref().unwrap(),
             ));
         } else if header.north_max.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::NorthMax,
-                coord_type.clone(),
+                *coord_type,
                 header.north_max.as_ref().unwrap(),
             ));
         } else if header.east_min.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::EastMin,
-                coord_type.clone(),
+                *coord_type,
                 header.east_min.as_ref().unwrap(),
             ));
         } else if header.east_max.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::EastMax,
-                coord_type.clone(),
+                *coord_type,
                 header.east_max.as_ref().unwrap(),
             ));
         } else if header.delta_north.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::DeltaNorth,
-                coord_type.clone(),
+                *coord_type,
                 header.delta_north.as_ref().unwrap(),
             ));
         } else if header.delta_east.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::DeltaEast,
-                coord_type.clone(),
+                *coord_type,
                 header.delta_east.as_ref().unwrap(),
             ));
         }
@@ -782,37 +782,37 @@ impl DataBounds {
         if header.lat_min.is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::LatMin,
-                coord_type.clone(),
+                *coord_type,
                 header.lat_min.as_ref().unwrap(),
             ));
         } else if header.lat_max.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::LatMax,
-                coord_type.clone(),
+                *coord_type,
                 header.lat_max.as_ref().unwrap(),
             ));
         } else if header.lon_min.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::LonMin,
-                coord_type.clone(),
+                *coord_type,
                 header.lon_min.as_ref().unwrap(),
             ));
         } else if header.lon_max.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::LonMax,
-                coord_type.clone(),
+                *coord_type,
                 header.lon_max.as_ref().unwrap(),
             ));
         } else if header.delta_lat.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::DeltaLat,
-                coord_type.clone(),
+                *coord_type,
                 header.delta_lat.as_ref().unwrap(),
             ));
         } else if header.delta_lon.as_ref().is_some() {
             return Err(ParseError::invalid_data_bounds(
                 HeaderField::DeltaLon,
-                coord_type.clone(),
+                *coord_type,
                 header.delta_lon.as_ref().unwrap(),
             ));
         }
