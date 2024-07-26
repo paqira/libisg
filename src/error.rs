@@ -7,7 +7,7 @@ use crate::token::Token;
 use crate::{CoordType, DataFormat};
 
 /// Error on parsing ISG format
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct ParseError {
     kind: ParseErrorKind,
     span: Option<Range<usize>>,
@@ -53,7 +53,7 @@ impl ParseError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub(crate) enum ParseErrorKind {
     /// not found begin_of_head
     MissingBeginOfHead,
@@ -325,7 +325,7 @@ impl Display for ParseErrorKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub(crate) enum DataDirection {
     Row,
     Column,
