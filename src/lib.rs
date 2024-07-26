@@ -170,6 +170,32 @@ pub enum Data {
     Sparse(Vec<(Coord, Coord, f64)>),
 }
 
+impl Data {
+    /// Returns data of [`Data::Grid`].
+    ///
+    /// # Safety
+    ///
+    /// Panics when `self` is [`Data::Sparse`].
+    pub fn grid_data(&self) -> &Vec<Vec<Option<f64>>> {
+        match self {
+            Data::Grid(data) => data,
+            Data::Sparse(_) => panic!("self is `Data::Sparse`, expected `Data::Grid`"),
+        }
+    }
+
+    /// Returns data of [`Data::Sparse`].
+    ///
+    /// # Safety
+    ///
+    /// Panics when `self` is [`Data::Grid`].
+    pub fn sparse_data(&self) -> &Vec<(Coord, Coord, f64)> {
+        match self {
+            Data::Grid(_) => panic!(""),
+            Data::Sparse(_) => panic!("self is `Data::Grid`, expected `Data::Sparse`"),
+        }
+    }
+}
+
 impl Clone for Data {
     fn clone(&self) -> Self {
         match self {
