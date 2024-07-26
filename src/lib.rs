@@ -287,6 +287,7 @@ pub enum CoordUnits {
     Feet,
 }
 
+/// Bounds and delta (`lat min` etc.)
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
