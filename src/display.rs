@@ -48,7 +48,7 @@ impl Display for ISG {
                         }
                         match column {
                             None => match self.header.nodata.as_ref() {
-                                None => return Err(std::fmt::Error {}),
+                                None => panic!("empty data found, but `nodata` of header is empty"),
                                 Some(v) => write!(f, "{:10.4}", v)?,
                             },
                             Some(v) => write!(f, "{:10.4}", v)?,
