@@ -54,7 +54,7 @@
 //! let isg = libisg::from_str(&s).unwrap();
 //!
 //! // serialize
-//! assert_eq!(s, libisg::to_string(isg));
+//! assert_eq!(s, libisg::to_string(&isg));
 //! ```
 //!
 //! ## serde

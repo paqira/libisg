@@ -9,7 +9,7 @@ use crate::*;
 /// # Safety
 ///
 /// Panics when data has [`None`] even if `nodata` is [`None`].
-pub fn to_string(isg: ISG) -> String {
+pub fn to_string(isg: &ISG) -> String {
     isg.to_string()
 }
 
