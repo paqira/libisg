@@ -41,7 +41,7 @@
 //!
 //! ## ISG format
 //!
-//! Use [`from_str`] fn and [`Display`](std::fmt::Display) trait.
+//! Use [`from_str`] and [`to_string`] fns.
 //!
 //! ```no_run
 //! use std::fs;
@@ -54,7 +54,7 @@
 //! let isg = libisg::from_str(&s).unwrap();
 //!
 //! // serialize
-//! assert_eq!(s, isg.to_string());
+//! assert_eq!(s, libisg::to_string(isg));
 //! ```
 //!
 //! ## serde
@@ -87,6 +87,8 @@
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
 
+#[doc(inline)]
+pub use display::to_string;
 #[doc(inline)]
 pub use error::{ParseError, ParseValueError, ValidationError};
 #[doc(inline)]

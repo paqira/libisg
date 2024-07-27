@@ -2,6 +2,17 @@ use std::fmt::{Display, Formatter, Write};
 
 use crate::*;
 
+/// Serialize [`ISG`] to [`String`].
+///
+/// This simply calls [`ToString::to_string`] on `sig`.
+///
+/// # Safety
+///
+/// Panics when data has [`None`] even if `nodata` is [`None`].
+pub fn to_string(isg: ISG) -> String {
+    isg.to_string()
+}
+
 impl Display for ISG {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         macro_rules! fmt_angle {
@@ -46,7 +57,7 @@ impl Display for ISG {
                         if !first {
                             f.write_char(' ')?;
                         }
-                        
+
                         match column {
                             None => match self.header.nodata.as_ref() {
                                 None => panic!("empty data found, but `nodata` of header is empty"),
@@ -54,10 +65,10 @@ impl Display for ISG {
                             },
                             Some(v) => write!(f, "{:10.4}", v)?,
                         }
-                        
+
                         first = false;
                     }
-                    
+
                     f.write_char('\n')?;
                 }
             }

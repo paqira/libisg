@@ -1,5 +1,9 @@
 # Change Log
 
+## vX.X.X - xxx-XX-XX
+
+- Add `to_string` fn
+
 ## v0.2.2 - 2024-07-27
 
 - Fix to panic when data has `None` when nodata is `None`
