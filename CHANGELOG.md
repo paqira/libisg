@@ -1,10 +1,10 @@
 # Change Log
 
-## vx.y.z
+## v0.2.1 - 2024-07-27
 
 - Fix name of `DataUnits` (from `DataUnit`)
 - Add MSRV (1.60)
 
-## v0.2.0 - 2024-07-27
+## v0.2.0 - 2024-07-26
 
 First release
