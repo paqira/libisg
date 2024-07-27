@@ -46,6 +46,7 @@ impl Display for ISG {
                         if !first {
                             f.write_char(' ')?;
                         }
+                        
                         match column {
                             None => match self.header.nodata.as_ref() {
                                 None => panic!("empty data found, but `nodata` of header is empty"),
@@ -53,8 +54,10 @@ impl Display for ISG {
                             },
                             Some(v) => write!(f, "{:10.4}", v)?,
                         }
+                        
                         first = false;
                     }
+                    
                     f.write_char('\n')?;
                 }
             }
