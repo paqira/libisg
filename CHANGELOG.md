@@ -1,6 +1,6 @@
 # Change Log
 
-## vX.X.X - xxx-XX-XX
+## v0.2.3 - 2024-07-29
 
 - Add `to_string` fn
 
