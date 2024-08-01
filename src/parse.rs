@@ -952,10 +952,7 @@ fn parse_data_grid(
                 ));
             }
 
-            let a: f64 = token
-                .value
-                .as_ref()
-                .trim()
+            let a = token
                 .parse()
                 .map_err(|_| ParseError::invalid_data(&token))?;
 
@@ -1025,7 +1022,7 @@ fn parse_data_sparse(
                 header.ncols,
                 lineno + rno + 1,
             )),
-            Some(token) => match token.value.as_ref().trim().parse() {
+            Some(token) => match token.parse() {
                 Ok(r) if is_valid_angle(&r) => Ok(r),
                 _ => Err(ParseError::invalid_data(&token)),
             },
@@ -1037,7 +1034,7 @@ fn parse_data_sparse(
                 header.ncols,
                 lineno + rno + 1,
             )),
-            Some(token) => match token.value.as_ref().trim().parse() {
+            Some(token) => match token.parse() {
                 Ok(r) if is_valid_angle(&r) => Ok(r),
                 _ => Err(ParseError::invalid_data(&token)),
             },
@@ -1049,12 +1046,7 @@ fn parse_data_sparse(
                 header.ncols,
                 lineno + rno + 1,
             )),
-            Some(token) => token
-                .value
-                .as_ref()
-                .trim()
-                .parse()
-                .map_err(|_| ParseError::invalid_data(&token)),
+            Some(token) => token.parse().map_err(|_| ParseError::invalid_data(&token)),
         }?;
 
         if tokens.next().is_some() {

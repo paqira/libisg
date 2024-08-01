@@ -88,7 +88,7 @@ impl<'a> Iterator for DataRowIterator<'a> {
                     if found {
                         let token = Token {
                             kind: TokenKind::Datum,
-                            value: self.line[self.pos..self.pos + columns].into(),
+                            value: self.line[self.pos..self.pos + columns].trim().into(),
                             span: self.pos..self.pos + columns,
                             lineno: self.lineno,
                         };
@@ -105,7 +105,7 @@ impl<'a> Iterator for DataRowIterator<'a> {
 
         Some(Token {
             kind: TokenKind::Datum,
-            value: self.line[pos..].into(),
+            value: self.line[pos..].trim().into(),
             span: pos..self.line.len(),
             lineno: self.lineno,
         })
