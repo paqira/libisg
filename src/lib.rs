@@ -6,6 +6,7 @@
 //! use libisg;
 //! use libisg::{Data, DataBounds, ISG};
 //!
+//!
 //! let s = fs::read_to_string("Example 1.isg").unwrap();
 //!
 //! let isg = libisg::from_str(&s).unwrap();
@@ -45,10 +46,10 @@
 //!
 //! ```no_run
 //! use std::fs;
-//!
 //! use libisg;
 //!
-//! let s = fs::read_to_string("file.isg").unwrap();
+//!
+//! let s = fs::read_to_string("Example 1.isg").unwrap();
 //!
 //! // deserialize
 //! let isg = libisg::from_str(&s).unwrap();
@@ -64,10 +65,10 @@
 //! ```no_run
 //! use std::fs;
 //! use serde_json;
-//!
 //! use libisg;
 //!
-//! let s = fs::read_to_string("file.isg").unwrap();
+//!
+//! let s = fs::read_to_string("Example 1.isg").unwrap();
 //! let isg = libisg::from_str(&s).unwrap();
 //!
 //! // serialize
