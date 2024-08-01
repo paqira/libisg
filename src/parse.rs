@@ -288,7 +288,7 @@ impl<'a> HeaderStore<'a> {
             match key
                 .value
                 .parse()
-                .map_err(|_| ParseError::invalid_header_key(&key))?
+                .map_err(|_| ParseError::unknown_header_key(&key))?
             {
                 HeaderField::ModelName => set_value!(key, model_name, ModelName, value),
                 HeaderField::ModelYear => set_value!(key, model_year, ModelYear, value),

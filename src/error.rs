@@ -97,7 +97,16 @@ impl ParseError {
     }
 
     #[cold]
-    fn with_span(kind: ParseErrorKind, span: Range<usize>, lineno: usize) -> Self {
+    fn with_lineno(kind: ParseErrorKind, lineno: usize) -> Self {
+        Self {
+            kind,
+            span: None,
+            lineno: Some(lineno),
+        }
+    }
+
+    #[cold]
+    fn with_span_and_lineno(kind: ParseErrorKind, span: Range<usize>, lineno: usize) -> Self {
         Self {
             kind,
             span: Some(span),
@@ -117,12 +126,12 @@ impl ParseError {
 
     #[cold]
     pub(crate) fn missing_sep(span: Range<usize>, lineno: usize) -> Self {
-        Self::with_span(ParseErrorKind::MissingSeparator, span, lineno)
+        Self::with_span_and_lineno(ParseErrorKind::MissingSeparator, span, lineno)
     }
 
     #[cold]
     pub(crate) fn dup_header(kind: HeaderField, token: Token) -> Self {
-        Self::with_span(
+        Self::with_span_and_lineno(
             ParseErrorKind::DuplicatedHeaderKey { kind },
             token.span,
             token.lineno,
@@ -130,8 +139,8 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn invalid_header_key(token: &Token) -> Self {
-        Self::with_span(
+    pub(crate) fn unknown_header_key(token: &Token) -> Self {
+        Self::with_span_and_lineno(
             ParseErrorKind::UnknownHeaderKey {
                 value: token.value.as_ref().into(),
             },
@@ -147,7 +156,7 @@ impl ParseError {
 
     #[cold]
     pub(crate) fn invalid_header_value(kind: HeaderField, token: &Token) -> Self {
-        Self::with_span(
+        Self::with_span_and_lineno(
             ParseErrorKind::InvalidHeaderValue {
                 kind,
                 source: Some(ParseValueError::new(token.value.as_ref())),
@@ -163,7 +172,7 @@ impl ParseError {
         kind: HeaderField,
         token: &Token,
     ) -> Self {
-        Self::with_span(
+        Self::with_span_and_lineno(
             ParseErrorKind::InvalidHeaderValue {
                 kind,
                 source: Some(e),
@@ -179,17 +188,15 @@ impl ParseError {
         coord_type: CoordType,
         token: &Token,
     ) -> Self {
-        Self::with_span(
+        Self::with_lineno(
             ParseErrorKind::InvalidDataBounds { key, coord_type },
-            // placeholder
-            token.span.clone(),
             token.lineno,
         )
     }
 
     #[cold]
     pub(crate) fn invalid_data(token: &Token) -> Self {
-        Self::with_span(
+        Self::with_span_and_lineno(
             ParseErrorKind::InvalidData {
                 value: token.value.as_ref().into(),
             },
@@ -200,26 +207,24 @@ impl ParseError {
 
     #[cold]
     pub(crate) fn too_short_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
-        Self::with_span(
+        Self::with_lineno(
             ParseErrorKind::InvalidDataLength {
                 kind: InvalidDataLengthKind::Short,
                 direction,
                 expected,
             },
-            0..0,
             lineno,
         )
     }
 
     #[cold]
     pub(crate) fn too_long_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
-        Self::with_span(
+        Self::with_lineno(
             ParseErrorKind::InvalidDataLength {
                 kind: InvalidDataLengthKind::Long,
                 direction,
                 expected,
             },
-            0..0,
             lineno,
         )
     }
