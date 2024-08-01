@@ -18,6 +18,8 @@ pub(crate) struct Token<'a> {
     pub(crate) lineno: usize,
 }
 
+// FIXME
+//   ISG 2.0 does not specs handling of empty string...
 impl Token<'_> {
     #[inline]
     pub(crate) fn parse<E, T>(&self) -> Result<T, E>
