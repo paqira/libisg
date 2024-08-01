@@ -211,7 +211,7 @@ impl Clone for Data {
             Self::Sparse(data) => Self::Sparse(data.clone()),
         }
     }
-    
+
     #[inline]
     fn clone_from(&mut self, source: &Self) {
         // FIXME: use match .. { .. }
