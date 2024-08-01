@@ -350,8 +350,6 @@ impl<'a> HeaderStore<'a> {
             .data_format
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::DataFormat))?
-            .value
-            .as_ref()
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -365,8 +363,6 @@ impl<'a> HeaderStore<'a> {
             .coord_type
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::CoordType))?
-            .value
-            .as_ref()
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -380,8 +376,6 @@ impl<'a> HeaderStore<'a> {
             .coord_units
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::CoordUnits))?
-            .value
-            .as_ref()
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -400,111 +394,77 @@ impl<'a> HeaderStore<'a> {
             }
         };
 
-        fn text(token: Token) -> Option<String> {
-            if token.value.eq("---") {
-                None
-            } else {
-                Some(token.value.into())
-            }
-        }
-
         Ok(Header {
-            model_name: self.model_name.and_then(text),
-            model_year: self.model_year.and_then(text),
-            model_type: match self.model_type.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::ModelType,
-                                self.model_type.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
-            data_type: match self.data_type.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::DataType,
-                                self.data_type.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
-            data_units: match self.data_units.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::DataUnits,
-                                self.data_units.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
+            model_name: self.model_name.as_ref().and_then(Token::parse_str),
+            model_year: self.model_year.as_ref().and_then(Token::parse_str),
+            model_type: self
+                .model_type
+                .as_ref()
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::ModelType,
+                        self.model_type.as_ref().unwrap(),
+                    )
+                })?,
+            data_type: self
+                .data_type
+                .as_ref()
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::DataType,
+                        self.data_type.as_ref().unwrap(),
+                    )
+                })?,
+            data_units: self
+                .data_units
+                .as_ref()
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::DataUnits,
+                        self.data_units.as_ref().unwrap(),
+                    )
+                })?,
             data_format,
-            data_ordering: match self.data_ordering.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::DataOrdering,
-                                self.data_ordering.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
-            ref_ellipsoid: self.ref_ellipsoid.and_then(text),
-            ref_frame: self.ref_frame.and_then(text),
-            height_datum: self.height_datum.and_then(text),
-            tide_system: match self.tide_system.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::TideSystem,
-                                self.tide_system.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
+            data_ordering: self
+                .data_ordering
+                .as_ref()
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::DataOrdering,
+                        self.data_ordering.as_ref().unwrap(),
+                    )
+                })?,
+            ref_ellipsoid: self.ref_ellipsoid.as_ref().and_then(Token::parse_str),
+            ref_frame: self.ref_frame.as_ref().and_then(Token::parse_str),
+            height_datum: self.height_datum.as_ref().and_then(Token::parse_str),
+            tide_system: self
+                .tide_system
+                .as_ref()
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::TideSystem,
+                        self.tide_system.as_ref().unwrap(),
+                    )
+                })?,
             coord_type,
             coord_units,
-            map_projection: self.map_projection.and_then(text),
-            EPSG_code: self.epsg_code.and_then(text),
+            map_projection: self.map_projection.as_ref().and_then(Token::parse_str),
+            EPSG_code: self.epsg_code.as_ref().and_then(Token::parse_str),
             data_bounds,
             nrows: self
                 .nrows
                 .as_ref()
                 .ok_or(ParseError::missing_header(HeaderField::NRows))?
-                .value
                 .parse()
                 .map_err(|_| {
                     ParseError::invalid_header_value(
@@ -516,7 +476,6 @@ impl<'a> HeaderStore<'a> {
                 .ncols
                 .as_ref()
                 .ok_or(ParseError::missing_header(HeaderField::NCols))?
-                .value
                 .parse()
                 .map_err(|_| {
                     ParseError::invalid_header_value(
@@ -524,40 +483,28 @@ impl<'a> HeaderStore<'a> {
                         &self.ncols.expect("already checked"),
                     )
                 })?,
-            nodata: match self
+            nodata: self
                 .nodata
                 .as_ref()
                 .ok_or(ParseError::missing_header(HeaderField::NoData))?
-                .value
+                .optional_parse()
+                .map_err(|_| {
+                    ParseError::invalid_header_value(
+                        HeaderField::NoData,
+                        &self.nodata.expect("already checked"),
+                    )
+                })?,
+            creation_date: self
+                .creation_date
                 .as_ref()
-            {
-                "---" => None,
-                s => s
-                    .parse()
-                    .map_err(|_| {
-                        ParseError::invalid_header_value(
-                            HeaderField::NoData,
-                            &self.nodata.expect("already checked"),
-                        )
-                    })
-                    .map(Some)?,
-            },
-            creation_date: match self.creation_date.as_ref() {
-                None => None,
-                Some(token) => match token.value.as_ref() {
-                    "---" => None,
-                    s => s
-                        .parse()
-                        .map_err(|e| {
-                            ParseError::from_parse_value_err(
-                                e,
-                                HeaderField::CreationDate,
-                                self.creation_date.as_ref().unwrap(),
-                            )
-                        })
-                        .map(Some)?,
-                },
-            },
+                .map_or(Ok(None), Token::optional_parse)
+                .map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::CreationDate,
+                        self.creation_date.as_ref().unwrap(),
+                    )
+                })?,
             ISG_format,
         })
     }
@@ -613,7 +560,6 @@ impl DataBounds {
             .lat_min
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::LatMin))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -627,7 +573,6 @@ impl DataBounds {
             .lat_max
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::LatMax))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -641,7 +586,6 @@ impl DataBounds {
             .lon_min
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::LonMin))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -655,7 +599,6 @@ impl DataBounds {
             .lon_max
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::LonMax))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -693,8 +636,6 @@ impl DataBounds {
                     .delta_lat
                     .as_ref()
                     .ok_or(ParseError::missing_header(HeaderField::DeltaLat))?
-                    .value
-                    .as_ref()
                     .parse()
                     .map_err(|e| {
                         ParseError::from_parse_value_err(
@@ -708,8 +649,6 @@ impl DataBounds {
                     .delta_lon
                     .as_ref()
                     .ok_or(ParseError::missing_header(HeaderField::DeltaLon))?
-                    .value
-                    .as_ref()
                     .parse()
                     .map_err(|e| {
                         ParseError::from_parse_value_err(
@@ -821,7 +760,6 @@ impl DataBounds {
             .north_min
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::NorthMin))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -835,7 +773,6 @@ impl DataBounds {
             .north_max
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::NorthMax))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -849,7 +786,6 @@ impl DataBounds {
             .east_min
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::EastMin))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -863,7 +799,6 @@ impl DataBounds {
             .east_max
             .as_ref()
             .ok_or(ParseError::missing_header(HeaderField::EastMax))?
-            .value
             .parse()
             .map_err(|e| {
                 ParseError::from_parse_value_err(
@@ -901,8 +836,6 @@ impl DataBounds {
                     .delta_north
                     .as_ref()
                     .ok_or(ParseError::missing_header(HeaderField::DeltaNorth))?
-                    .value
-                    .as_ref()
                     .parse()
                     .map_err(|e| {
                         ParseError::from_parse_value_err(
@@ -916,8 +849,6 @@ impl DataBounds {
                     .delta_east
                     .as_ref()
                     .ok_or(ParseError::missing_header(HeaderField::DeltaEast))?
-                    .value
-                    .as_ref()
                     .parse()
                     .map_err(|e| {
                         ParseError::from_parse_value_err(

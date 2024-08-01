@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::iter::{Enumerate, Peekable};
 use std::ops::Range;
-use std::str::Lines;
+use std::str::{FromStr, Lines};
 
 use crate::error::ParseError;
 
@@ -16,6 +16,30 @@ pub(crate) struct Token<'a> {
     pub(crate) value: Cow<'a, str>,
     pub(crate) span: Range<usize>,
     pub(crate) lineno: usize,
+}
+
+impl Token<'_> {
+    #[inline]
+    pub(crate) fn parse<E, T: FromStr<Err = E>>(&self) -> Result<T, E> {
+        self.value.parse()
+    }
+
+    #[inline]
+    pub(crate) fn optional_parse<E, T: FromStr<Err = E>>(&self) -> Result<Option<T>, E> {
+        match self.value.as_ref() {
+            "---" => Ok(None),
+            s => s.parse().map(Some),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn parse_str(&self) -> Option<String> {
+        if self.value.eq("---") {
+            None
+        } else {
+            Some(self.value.as_ref().into())
+        }
+    }
 }
 
 #[derive(Debug)]
