@@ -118,6 +118,7 @@ pub struct ISG {
 }
 
 impl Clone for ISG {
+    #[inline]
     fn clone(&self) -> Self {
         Self {
             comment: self.comment.clone(),
@@ -126,6 +127,7 @@ impl Clone for ISG {
         }
     }
 
+    #[inline]
     fn clone_from(&mut self, source: &Self) {
         self.comment.clone_from(&source.comment);
         self.header.clone_from(&source.header);
@@ -179,6 +181,7 @@ impl Data {
     /// # Safety
     ///
     /// Panics when `self` is [`Data::Sparse`].
+    #[inline]
     pub fn grid_data(&self) -> &Vec<Vec<Option<f64>>> {
         match self {
             Data::Grid(data) => data,
@@ -191,6 +194,7 @@ impl Data {
     /// # Safety
     ///
     /// Panics when `self` is [`Data::Grid`].
+    #[inline]
     pub fn sparse_data(&self) -> &Vec<(Coord, Coord, f64)> {
         match self {
             Data::Grid(_) => panic!(""),
@@ -200,13 +204,15 @@ impl Data {
 }
 
 impl Clone for Data {
+    #[inline]
     fn clone(&self) -> Self {
         match self {
             Self::Grid(data) => Self::Grid(data.clone()),
             Self::Sparse(data) => Self::Sparse(data.clone()),
         }
     }
-
+    
+    #[inline]
     fn clone_from(&mut self, source: &Self) {
         // FIXME: use match .. { .. }
         if let Data::Grid(dst) = self {
@@ -356,6 +362,7 @@ pub enum Coord {
 
 impl Coord {
     /// Make new [`Coord::DMS`].
+    #[inline]
     pub fn with_dms(degree: i16, minutes: u8, second: u8) -> Self {
         Self::DMS {
             degree,
@@ -365,6 +372,7 @@ impl Coord {
     }
 
     /// Make new [`Coord::Dec`].
+    #[inline]
     pub fn with_dec(value: f64) -> Self {
         Self::Dec(value)
     }
