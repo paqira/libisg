@@ -103,12 +103,18 @@ impl<'a> Iterator for DataRowIterator<'a> {
         let pos = self.pos;
         self.pos = self.line.len();
 
-        Some(Token {
-            kind: TokenKind::Datum,
-            value: self.line[pos..].trim().into(),
-            span: pos..self.line.len(),
-            lineno: self.lineno,
-        })
+        let s = self.line[pos..].trim();
+        if s.is_empty() {
+            // trailing spaces
+            None
+        } else {
+            Some(Token {
+                kind: TokenKind::Datum,
+                value: s.into(),
+                span: pos..self.line.len(),
+                lineno: self.lineno,
+            })
+        }
     }
 }
 

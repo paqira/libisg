@@ -1,5 +1,9 @@
 # Change Log
 
+## vX.X.X - XXXX-XX-XX
+
+- Add support trailing spaces on data
+
 ## v0.2.3 - 2024-07-29
 
 - Add `to_string` fn
