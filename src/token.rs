@@ -20,12 +20,18 @@ pub(crate) struct Token<'a> {
 
 impl Token<'_> {
     #[inline]
-    pub(crate) fn parse<E, T: FromStr<Err = E>>(&self) -> Result<T, E> {
+    pub(crate) fn parse<E, T>(&self) -> Result<T, E>
+    where
+        T: FromStr<Err = E>,
+    {
         self.value.parse()
     }
 
     #[inline]
-    pub(crate) fn optional_parse<E, T: FromStr<Err = E>>(&self) -> Result<Option<T>, E> {
+    pub(crate) fn optional_parse<E, T>(&self) -> Result<Option<T>, E>
+    where
+        T: FromStr<Err = E>,
+    {
         match self.value.as_ref() {
             "---" => Ok(None),
             s => s.parse().map(Some),
@@ -34,10 +40,9 @@ impl Token<'_> {
 
     #[inline]
     pub(crate) fn parse_str(&self) -> Option<String> {
-        if self.value.eq("---") {
-            None
-        } else {
-            Some(self.value.as_ref().into())
+        match self.value.as_ref() {
+            "---" => None,
+            s => Some(s.into()),
         }
     }
 }
