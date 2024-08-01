@@ -187,9 +187,9 @@ impl Add<&Coord> for &Coord {
 
                 let degree = a_deg + b_deg + carry as i64;
                 Coord::DMS {
-                    degree: degree as i16,
-                    minutes: minutes as u8,
-                    second: second as u8,
+                    degree: degree as _,
+                    minutes: minutes as _,
+                    second: second as _,
                 }
             }
             (Coord::Dec(a), Coord::Dec(b)) => Coord::Dec(a + b),
@@ -263,9 +263,9 @@ impl Sub<&Coord> for &Coord {
 
                 let degree = a_deg - b_deg - carry;
                 Coord::DMS {
-                    degree: degree as i16,
-                    minutes: minutes as u8,
-                    second: second as u8,
+                    degree: degree as _,
+                    minutes: minutes as _,
+                    second: second as _,
                 }
             }
             (Coord::Dec(a), Coord::Dec(b)) => Coord::Dec(a - b),
