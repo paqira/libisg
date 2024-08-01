@@ -1,6 +1,6 @@
 [package]
 name = "libisg"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 rust-version = "1.60"  # by serde with derive
 authors = ["Kentaro Tatsumi <paqira.2019@gmail.com>"]

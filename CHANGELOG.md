@@ -1,6 +1,6 @@
 # Change Log
 
-## vX.X.X - XXXX-XX-XX
+## v0.2.4 - 2024-08-01
 
 - Add support trailing spaces on data
 
