@@ -13,7 +13,7 @@ use std::fs;
 use libisg;
 use libisg::{Data, DataBounds, ISG};
 
-let s = fs::read_to_string("file.isg").unwrap();
+let s = fs::read_to_string("Example 1.isg").unwrap();
 
 let isg = libisg::from_str(&s).unwrap();
 
@@ -22,7 +22,7 @@ let (a_max, b_max, delta_a, delta_b) = match isg.header.data_bounds {
     DataBounds::GridGeodetic { lat_max, lon_max, delta_lat, delta_lon, .. } => {
         (lat_max, lon_max, delta_lat, delta_lon)
     },
-    _ => unimplemented!("`file.isg` is grid geodetic"),
+    _ => unimplemented!("`Example 1.isg` is grid geodetic"),
 };
 
 match &isg.data {
