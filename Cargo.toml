@@ -9,7 +9,7 @@ repository = "https://github.com/paqira/libisg"
 description = "Libraly reading/writing ISG 2.0 format"
 keywords = ["GIS", "ISG"]
 readme = "README.md"
-exclude = [".*", "rsc"]
+exclude = [".*", "rsc", "test"]
 categories = ["science::geo"]
 
 [[test]]
