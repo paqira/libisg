@@ -342,34 +342,29 @@ impl<'a> HeaderStore<'a> {
     #[inline]
     fn header(self) -> Result<Header, ParseError> {
         #[allow(non_snake_case)]
-        let ISG_format = match self
-            .isg_format
-            .as_ref()
-            .ok_or(ParseError::missing_header(HeaderField::IsgFormat))?
-            .value
-            .as_ref()
-        {
-            s @ "2.0" => s.to_string(),
-            _ => {
-                return Err(ParseError::invalid_header_value(
+        let ISG_format = self.isg_format.as_ref().map_or(
+            Err(ParseError::missing_header(HeaderField::IsgFormat)),
+            |token| match token.value.as_ref() {
+                s @ "2.0" => Ok(s.to_string()),
+                _ => Err(ParseError::invalid_header_value(
                     HeaderField::IsgFormat,
-                    &self.isg_format.expect("already checked"),
-                ))
-            }
-        };
+                    token,
+                )),
+            },
+        )?;
 
-        let data_format = self
-            .data_format
-            .as_ref()
-            .ok_or(ParseError::missing_header(HeaderField::DataFormat))?
-            .parse()
-            .map_err(|e| {
-                ParseError::from_parse_value_err(
-                    e,
-                    HeaderField::DataFormat,
-                    self.data_format.as_ref().unwrap(),
-                )
-            })?;
+        let data_format = self.data_format.as_ref().map_or(
+            Err(ParseError::missing_header(HeaderField::DataFormat)),
+            |token| {
+                token.parse().map_err(|e| {
+                    ParseError::from_parse_value_err(
+                        e,
+                        HeaderField::DataFormat,
+                        self.data_format.as_ref().unwrap(),
+                    )
+                })
+            },
+        )?;
 
         let coord_type = self
             .coord_type
