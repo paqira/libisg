@@ -24,7 +24,7 @@ fn example_3() {
 
 #[test]
 fn empty_comment() {
-    let s = fs::read_to_string("rsc/isg/empty_comment.isg").unwrap();
+    let s = fs::read_to_string("rsc/isg/example.1.empty_comment.isg").unwrap();
     let isg = from_str(&s).unwrap();
     assert_eq!(s, isg.to_string())
 }
