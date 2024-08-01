@@ -6,6 +6,7 @@ use crate::*;
 
 impl FromStr for ModelType {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "gravimetric" => Ok(Self::Gravimetric),
@@ -18,6 +19,7 @@ impl FromStr for ModelType {
 
 impl FromStr for DataType {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "geoid" => Ok(Self::Geoid),
@@ -29,6 +31,7 @@ impl FromStr for DataType {
 
 impl FromStr for DataUnits {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "meters" => Ok(Self::Meters),
@@ -40,6 +43,7 @@ impl FromStr for DataUnits {
 
 impl FromStr for DataFormat {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "grid" => Ok(Self::Grid),
@@ -51,6 +55,7 @@ impl FromStr for DataFormat {
 
 impl FromStr for DataOrdering {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "N-to-S, W-to-E" => Ok(Self::N2SW2E),
@@ -65,6 +70,7 @@ impl FromStr for DataOrdering {
 
 impl FromStr for TideSystem {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "tide-free" => Ok(Self::TideFree),
@@ -77,6 +83,7 @@ impl FromStr for TideSystem {
 
 impl FromStr for CoordType {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "geodetic" => Ok(Self::Geodetic),
@@ -88,6 +95,7 @@ impl FromStr for CoordType {
 
 impl FromStr for CoordUnits {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "dms" => Ok(Self::DMS),
@@ -128,6 +136,7 @@ impl FromStr for Coord {
 
 impl FromStr for CreationDate {
     type Err = ParseValueError;
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('/');
 
@@ -185,7 +194,7 @@ pub enum HeaderField {
 
 impl FromStr for HeaderField {
     type Err = ParseValueError;
-
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "model name" => Ok(Self::ModelName),
@@ -262,6 +271,7 @@ struct HeaderStore<'a> {
 }
 
 impl CoordUnits {
+    #[inline]
     fn check(&self, coord: &Coord) -> bool {
         match self {
             Self::DMS => matches!(coord, Coord::DMS { .. }),
@@ -271,6 +281,7 @@ impl CoordUnits {
 }
 
 impl<'a> HeaderStore<'a> {
+    #[inline]
     fn from_tokenizer(tokenizer: &mut Tokenizer<'a>) -> Result<Self, ParseError> {
         let mut this = Self::default();
 
@@ -328,6 +339,7 @@ impl<'a> HeaderStore<'a> {
         Ok(this)
     }
 
+    #[inline]
     fn header(self) -> Result<Header, ParseError> {
         #[allow(non_snake_case)]
         let ISG_format = match self
@@ -512,6 +524,7 @@ impl<'a> HeaderStore<'a> {
 
 // TODO: needs refactoring
 impl DataBounds {
+    #[inline]
     fn with_geodetic(
         header: &HeaderStore,
         data_format: &DataFormat,
@@ -712,6 +725,7 @@ impl DataBounds {
         }
     }
 
+    #[inline]
     fn with_projected(
         header: &HeaderStore,
         data_format: &DataFormat,
@@ -913,6 +927,7 @@ impl DataBounds {
     }
 }
 
+#[inline]
 fn parse_data_grid(
     tokenizer: &mut Tokenizer,
     header: &Header,
@@ -984,6 +999,7 @@ fn parse_data_grid(
     Ok(Data::Grid(data))
 }
 
+#[inline]
 fn parse_data_sparse(
     tokenizer: &mut Tokenizer,
     header: &Header,
@@ -1072,6 +1088,7 @@ fn parse_data_sparse(
 }
 
 /// Deserialize ISG-format.
+#[inline]
 pub fn from_str(s: &str) -> Result<ISG, ParseError> {
     let mut tokenizer = Tokenizer::new(s);
 
@@ -1097,6 +1114,7 @@ pub fn from_str(s: &str) -> Result<ISG, ParseError> {
 impl FromStr for ISG {
     type Err = ParseError;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         from_str(s)
     }

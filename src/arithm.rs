@@ -8,6 +8,7 @@ use crate::Coord;
 impl Neg for Coord {
     type Output = Coord;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         Neg::neg(&self)
     }
@@ -16,6 +17,7 @@ impl Neg for Coord {
 impl Neg for &Coord {
     type Output = Coord;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         match self {
             Coord::DMS {
@@ -37,6 +39,7 @@ macro_rules! impl_mul {
         impl Mul<$type> for Coord {
             type Output = Coord;
 
+            #[inline]
             fn mul(self, rhs: $type) -> Self::Output {
                 Mul::mul(&self, &rhs)
             }
@@ -45,6 +48,7 @@ macro_rules! impl_mul {
         impl Mul<$type> for &Coord {
             type Output = Coord;
 
+            #[inline]
             fn mul(self, rhs: $type) -> Self::Output {
                 Mul::mul(self, &rhs)
             }
@@ -53,6 +57,7 @@ macro_rules! impl_mul {
         impl Mul<&$type> for Coord {
             type Output = Coord;
 
+            #[inline]
             fn mul(self, rhs: &$type) -> Self::Output {
                 Mul::mul(&self, rhs)
             }
@@ -118,6 +123,7 @@ impl_mul!(usize);
 impl Add<Coord> for Coord {
     type Output = Coord;
 
+    #[inline]
     fn add(self, rhs: Coord) -> Self::Output {
         Add::add(&self, &rhs)
     }
@@ -126,6 +132,7 @@ impl Add<Coord> for Coord {
 impl Add<&Coord> for Coord {
     type Output = Coord;
 
+    #[inline]
     fn add(self, rhs: &Coord) -> Self::Output {
         Add::add(&self, rhs)
     }
@@ -134,6 +141,7 @@ impl Add<&Coord> for Coord {
 impl Add<Coord> for &Coord {
     type Output = Coord;
 
+    #[inline]
     fn add(self, rhs: Coord) -> Self::Output {
         Add::add(self, &rhs)
     }
@@ -193,6 +201,7 @@ impl Add<&Coord> for &Coord {
 impl Sub<Coord> for Coord {
     type Output = Coord;
 
+    #[inline]
     fn sub(self, rhs: Coord) -> Self::Output {
         Sub::sub(&self, &rhs)
     }
@@ -201,6 +210,7 @@ impl Sub<Coord> for Coord {
 impl Sub<&Coord> for Coord {
     type Output = Coord;
 
+    #[inline]
     fn sub(self, rhs: &Coord) -> Self::Output {
         Sub::sub(&self, rhs)
     }
@@ -209,6 +219,7 @@ impl Sub<&Coord> for Coord {
 impl Sub<Coord> for &Coord {
     type Output = Coord;
 
+    #[inline]
     fn sub(self, rhs: Coord) -> Self::Output {
         Sub::sub(self, &rhs)
     }

@@ -112,6 +112,7 @@ impl<'a> Iterator for DataRowIterator<'a> {
 // The resulting `TokenKind` is for debugging,
 // it does not effect parsing.
 impl<'a> Tokenizer<'a> {
+    #[inline]
     pub(crate) fn new(s: &'a str) -> Self {
         Self {
             str: s,
@@ -120,6 +121,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    #[inline]
     pub(crate) fn tokenize_comment(&mut self) -> Result<Token<'a>, ParseError> {
         // Counts comment length for Cow
         let mut chars = 0;
@@ -150,6 +152,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    #[inline]
     pub(crate) fn tokenize_begin_of_header(&mut self) -> Result<Token<'a>, ParseError> {
         match self.lines.next() {
             None => Err(ParseError::missing_boh()),
@@ -170,6 +173,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    #[inline]
     pub(crate) fn tokenize_header(
         &mut self,
     ) -> Result<Option<(Token<'a>, Token<'a>, Token<'a>)>, ParseError> {
@@ -217,6 +221,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    #[inline]
     pub(crate) fn tokenize_end_of_header(&mut self) -> Result<Token<'a>, ParseError> {
         match self.lines.next() {
             None => Err(ParseError::missing_eoh()),
@@ -236,6 +241,7 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    #[inline]
     pub(crate) fn tokenize_data(&mut self) -> Option<DataRowIterator> {
         // Returns `None` when data ends
         self.lines.next().map(|(lineno, line)| DataRowIterator {
