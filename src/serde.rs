@@ -20,9 +20,11 @@ impl Serialize for Coord {
                 use serde::ser::SerializeStruct;
 
                 let mut s = serializer.serialize_struct("Coord", 3)?;
+
                 s.serialize_field("degree", degree)?;
                 s.serialize_field("minutes", minutes)?;
                 s.serialize_field("second", second)?;
+
                 s.end()
             }
             Coord::Dec(value) => serializer.serialize_f64(*value),

@@ -992,7 +992,7 @@ fn parse_data_grid(
     let mut data = Vec::with_capacity(header.nrows);
     while let Some(tokens) = tokenizer.tokenize_data() {
         if rno >= header.nrows {
-            return Err(ParseError::long_data(
+            return Err(ParseError::too_long_data(
                 DataDirection::Row,
                 header.nrows,
                 lineno + rno + 1,
@@ -1004,7 +1004,7 @@ fn parse_data_grid(
         let mut row = Vec::with_capacity(header.ncols);
         for token in tokens {
             if cno >= header.ncols {
-                return Err(ParseError::long_data(
+                return Err(ParseError::too_long_data(
                     DataDirection::Column,
                     header.ncols,
                     lineno + rno + 1,
@@ -1028,7 +1028,7 @@ fn parse_data_grid(
         }
 
         if cno != header.ncols {
-            return Err(ParseError::short_data(
+            return Err(ParseError::too_short_data(
                 DataDirection::Column,
                 header.ncols,
                 lineno + rno + 1,
@@ -1042,7 +1042,7 @@ fn parse_data_grid(
     }
 
     if rno != header.nrows {
-        return Err(ParseError::short_data(
+        return Err(ParseError::too_short_data(
             DataDirection::Row,
             header.nrows,
             lineno + rno + 1,
@@ -1070,7 +1070,7 @@ fn parse_data_sparse(
     let mut data = Vec::with_capacity(header.nrows);
     while let Some(mut tokens) = tokenizer.tokenize_data() {
         if rno >= header.nrows {
-            return Err(ParseError::long_data(
+            return Err(ParseError::too_long_data(
                 DataDirection::Row,
                 header.nrows,
                 lineno + rno + 1,
@@ -1078,7 +1078,7 @@ fn parse_data_sparse(
         }
 
         let a = match tokens.next() {
-            None => Err(ParseError::short_data(
+            None => Err(ParseError::too_short_data(
                 DataDirection::Column,
                 header.ncols,
                 lineno + rno + 1,
@@ -1090,7 +1090,7 @@ fn parse_data_sparse(
         }?;
 
         let b = match tokens.next() {
-            None => Err(ParseError::short_data(
+            None => Err(ParseError::too_short_data(
                 DataDirection::Column,
                 header.ncols,
                 lineno + rno + 1,
@@ -1102,7 +1102,7 @@ fn parse_data_sparse(
         }?;
 
         let c = match tokens.next() {
-            None => Err(ParseError::short_data(
+            None => Err(ParseError::too_short_data(
                 DataDirection::Column,
                 header.ncols,
                 lineno + rno + 1,
@@ -1116,7 +1116,7 @@ fn parse_data_sparse(
         }?;
 
         if tokens.next().is_some() {
-            return Err(ParseError::long_data(
+            return Err(ParseError::too_long_data(
                 DataDirection::Column,
                 header.ncols,
                 lineno + rno + 1,
@@ -1129,7 +1129,7 @@ fn parse_data_sparse(
     }
 
     if rno != header.nrows {
-        return Err(ParseError::short_data(
+        return Err(ParseError::too_short_data(
             DataDirection::Row,
             header.nrows,
             lineno + rno + 1,

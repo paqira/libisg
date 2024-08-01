@@ -27,20 +27,18 @@ impl ParseError {
     pub fn is_header_section(&self) -> bool {
         matches!(
             self.kind,
-            ParseErrorKind::UnexpectedHeaderKey { .. }
+            ParseErrorKind::UnknownHeaderKey { .. }
                 | ParseErrorKind::MissingHeaderKey { .. }
                 | ParseErrorKind::DuplicatedHeaderKey { .. }
-                | ParseErrorKind::UnexpectedHeaderValue { .. }
-                | ParseErrorKind::UnexpectedDataBounds { .. }
+                | ParseErrorKind::InvalidHeaderValue { .. }
+                | ParseErrorKind::InvalidDataBounds { .. }
         )
     }
 
     pub fn is_data_section(&self) -> bool {
         matches!(
             self.kind,
-            ParseErrorKind::UnexpectedData { .. }
-                | ParseErrorKind::LongData { .. }
-                | ParseErrorKind::ShortData { .. }
+            ParseErrorKind::InvalidData { .. } | ParseErrorKind::InvalidDataLength { .. }
         )
     }
 
@@ -59,34 +57,30 @@ pub(crate) enum ParseErrorKind {
     MissingBeginOfHead,
     /// not found end_of_head
     MissingEndOfHead,
-    /// not found header separatpr `:` or `=`
+    /// not found header separator `:` or `=`
     MissingSeparator,
 
     /// Invalid header key
-    UnexpectedHeaderKey { value: Box<str> },
+    UnknownHeaderKey { value: Box<str> },
     /// Missing header field
     MissingHeaderKey { kind: HeaderField },
     /// Duplicated header field
     DuplicatedHeaderKey { kind: HeaderField },
     /// Invalid header value
-    UnexpectedHeaderValue {
+    InvalidHeaderValue {
         kind: HeaderField,
         source: Option<ParseValueError>,
     },
-
     /// Invalid (inconsistent) data bound (`lat max` etc.)
-    UnexpectedDataBounds {
+    InvalidDataBounds {
         key: HeaderField,
         coord_type: CoordType,
     },
 
     /// Invalid data found
-    UnexpectedData { value: Box<str> },
-    ShortData {
-        direction: DataDirection,
-        expected: usize,
-    },
-    LongData {
+    InvalidData { value: Box<str> },
+    InvalidDataLength {
+        kind: InvalidDataLengthKind,
         direction: DataDirection,
         expected: usize,
     },
@@ -138,7 +132,7 @@ impl ParseError {
     #[cold]
     pub(crate) fn invalid_header_key(token: &Token) -> Self {
         Self::with_span(
-            ParseErrorKind::UnexpectedHeaderKey {
+            ParseErrorKind::UnknownHeaderKey {
                 value: token.value.as_ref().into(),
             },
             token.span.clone(),
@@ -154,7 +148,7 @@ impl ParseError {
     #[cold]
     pub(crate) fn invalid_header_value(kind: HeaderField, token: &Token) -> Self {
         Self::with_span(
-            ParseErrorKind::UnexpectedHeaderValue {
+            ParseErrorKind::InvalidHeaderValue {
                 kind,
                 source: Some(ParseValueError::new(token.value.as_ref())),
             },
@@ -170,7 +164,7 @@ impl ParseError {
         token: &Token,
     ) -> Self {
         Self::with_span(
-            ParseErrorKind::UnexpectedHeaderValue {
+            ParseErrorKind::InvalidHeaderValue {
                 kind,
                 source: Some(e),
             },
@@ -186,7 +180,7 @@ impl ParseError {
         token: &Token,
     ) -> Self {
         Self::with_span(
-            ParseErrorKind::UnexpectedDataBounds { key, coord_type },
+            ParseErrorKind::InvalidDataBounds { key, coord_type },
             // placeholder
             token.span.clone(),
             token.lineno,
@@ -196,7 +190,7 @@ impl ParseError {
     #[cold]
     pub(crate) fn invalid_data(token: &Token) -> Self {
         Self::with_span(
-            ParseErrorKind::UnexpectedData {
+            ParseErrorKind::InvalidData {
                 value: token.value.as_ref().into(),
             },
             token.span.clone(),
@@ -205,9 +199,10 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn short_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
+    pub(crate) fn too_short_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
         Self::with_span(
-            ParseErrorKind::ShortData {
+            ParseErrorKind::InvalidDataLength {
+                kind: InvalidDataLengthKind::Short,
                 direction,
                 expected,
             },
@@ -217,9 +212,10 @@ impl ParseError {
     }
 
     #[cold]
-    pub(crate) fn long_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
+    pub(crate) fn too_long_data(direction: DataDirection, expected: usize, lineno: usize) -> Self {
         Self::with_span(
-            ParseErrorKind::LongData {
+            ParseErrorKind::InvalidDataLength {
+                kind: InvalidDataLengthKind::Long,
                 direction,
                 expected,
             },
@@ -232,7 +228,7 @@ impl ParseError {
 impl Error for ParseError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match &self.kind {
-            ParseErrorKind::UnexpectedHeaderValue {
+            ParseErrorKind::InvalidHeaderValue {
                 source: Some(source),
                 ..
             } => Some(source),
@@ -247,30 +243,22 @@ impl Display for ParseError {
             ParseErrorKind::MissingBeginOfHead
             | ParseErrorKind::MissingEndOfHead
             | ParseErrorKind::MissingHeaderKey { .. }
-            | ParseErrorKind::LongData {
-                direction: DataDirection::Row,
-                ..
-            }
-            | ParseErrorKind::ShortData {
+            | ParseErrorKind::InvalidDataLength {
                 direction: DataDirection::Row,
                 ..
             } => Display::fmt(&self.kind, f),
             ParseErrorKind::MissingSeparator
-            | ParseErrorKind::UnexpectedDataBounds { .. }
-            | ParseErrorKind::LongData {
-                direction: DataDirection::Column,
-                ..
-            }
-            | ParseErrorKind::ShortData {
+            | ParseErrorKind::InvalidDataBounds { .. }
+            | ParseErrorKind::InvalidDataLength {
                 direction: DataDirection::Column,
                 ..
             } => {
                 write!(f, "{} (line: {})", self.kind, self.lineno.unwrap())
             }
-            ParseErrorKind::UnexpectedHeaderKey { .. }
+            ParseErrorKind::UnknownHeaderKey { .. }
             | ParseErrorKind::DuplicatedHeaderKey { .. }
-            | ParseErrorKind::UnexpectedHeaderValue { .. }
-            | ParseErrorKind::UnexpectedData { .. } => {
+            | ParseErrorKind::InvalidHeaderValue { .. }
+            | ParseErrorKind::InvalidData { .. } => {
                 write!(
                     f,
                     "{} (line: {}, column: {} to {})",
@@ -287,40 +275,34 @@ impl Display for ParseError {
 impl Display for ParseErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
+            // syntax
             Self::MissingBeginOfHead => f.write_str("missing line starts with `begin_of_head`"),
             Self::MissingEndOfHead => f.write_str("missing line starts with `end_of_head`"),
             Self::MissingSeparator => f.write_str("missing separator"),
-            Self::UnexpectedHeaderKey { value } => write!(f, "unexpected header key: `{}`", value),
+            // header
+            Self::UnknownHeaderKey { value } => write!(f, "unknown header key: `{}`", value),
             Self::MissingHeaderKey { kind } => write!(f, "missing header key: `{}`", kind),
             Self::DuplicatedHeaderKey { kind } => write!(f, "duplicated header key: `{}`", kind),
-            Self::UnexpectedHeaderValue { source, kind } => match source {
-                None => write!(f, "unexpected header value on `{}`", kind),
+            Self::InvalidHeaderValue { source, kind } => match source {
+                None => write!(f, "invalid header value on `{}`", kind),
                 Some(e) => write!(f, "{} on `{}`", e, kind),
             },
-            Self::UnexpectedDataBounds { key, coord_type } => write!(
+            Self::InvalidDataBounds { key, coord_type } => write!(
                 f,
-                "unexpected header key: `{}` with `coord type` is `{}`",
+                "invalid header key: `{}`, although `coord type` is `{}`",
                 key, coord_type
             ),
-            Self::UnexpectedData { value } => write!(f, "unexpected data: `{}`", value),
-            Self::ShortData {
+            // data
+            Self::InvalidData { value } => write!(f, "invalid data: `{}`", value),
+            Self::InvalidDataLength {
+                kind,
                 direction,
                 expected,
-            } => match direction {
-                DataDirection::Row => write!(f, "short data row, expected {} row(s)", expected),
-                DataDirection::Column => {
-                    write!(f, "short data column, expected {} column(s)", expected)
-                }
-            },
-            Self::LongData {
-                direction,
-                expected,
-            } => match direction {
-                DataDirection::Row => write!(f, "long data row, expected {} row(s)", expected),
-                DataDirection::Column => {
-                    write!(f, "long data column, expected {} column(s)", expected)
-                }
-            },
+            } => write!(
+                f,
+                "too {} data {}, expected {} {1}(s)",
+                kind, direction, expected
+            ),
         }
     }
 }
@@ -329,6 +311,34 @@ impl Display for ParseErrorKind {
 pub(crate) enum DataDirection {
     Row,
     Column,
+}
+
+impl Display for DataDirection {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Row => "row",
+            Self::Column => "column",
+        };
+
+        f.write_str(s)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub(crate) enum InvalidDataLengthKind {
+    Short,
+    Long,
+}
+
+impl Display for InvalidDataLengthKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Short => "short",
+            Self::Long => "long",
+        };
+
+        f.write_str(s)
+    }
 }
 
 /// Error on parsing header value of ISG format

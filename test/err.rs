@@ -139,7 +139,7 @@ end_of_head =================================================="##;
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected header key: `X` (line: 2, column: 1 to 2)"
+        "unknown header key: `X` (line: 2, column: 1 to 2)"
     );
 }
 
@@ -283,7 +283,7 @@ end_of_head =================================================="##;
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected header key: `east max` with `coord type` is `geodetic` (line: 20)"
+        "invalid header key: `east max`, although `coord type` is `geodetic` (line: 20)"
     );
 }
 
@@ -322,7 +322,7 @@ a
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "unexpected data: `a` (line: 29, column: 0 to 1)"
+        "invalid data: `a` (line: 29, column: 0 to 1)"
     );
 }
 
@@ -363,7 +363,7 @@ end_of_head ==================================================
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "long data column, expected 3 column(s) (line: 30)"
+        "too long data column, expected 3 column(s) (line: 30)"
     );
 }
 
@@ -404,7 +404,7 @@ end_of_head ==================================================
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "short data column, expected 3 column(s) (line: 30)"
+        "too short data column, expected 3 column(s) (line: 30)"
     );
 }
 
@@ -445,7 +445,7 @@ end_of_head ==================================================
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "long data row, expected 2 row(s)"
+        "too long data row, expected 2 row(s)"
     );
 }
 
@@ -486,6 +486,6 @@ end_of_head ==================================================
     let a = from_str(s);
     assert_eq!(
         a.unwrap_err().to_string(),
-        "short data row, expected 20 row(s)"
+        "too short data row, expected 20 row(s)"
     );
 }
