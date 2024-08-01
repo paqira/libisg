@@ -82,7 +82,8 @@
 //! - [`libisg`](self)'s support of arithmetic on [`Coord`] is very minimal/basic,
 //!   consider to use other crates
 
-// TODO: support v1.1 format?
+// We don't support 1.01 format,
+// because it requires 18 digits decimal perception on data!
 
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
