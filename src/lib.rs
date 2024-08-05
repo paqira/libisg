@@ -105,7 +105,9 @@ mod serde;
 mod token;
 mod validation;
 
-/// ISG format
+/// ISG format.
+///
+/// Notes, behavior is unspecified when `header` and/or `data` is invalid.
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ISG {

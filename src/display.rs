@@ -15,28 +15,10 @@ pub fn to_string(isg: &ISG) -> String {
 }
 
 impl Display for ISG {
+    /// # Safety
+    ///
+    /// Panics when data has [`None`] even if `nodata` is [`None`].
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        macro_rules! fmt_angle {
-            ($angle:expr, $unit:expr) => {
-                match $angle {
-                    Coord::DMS {
-                        degree,
-                        minutes,
-                        second,
-                    } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
-                    Coord::Dec(value) => match $unit {
-                        CoordUnits::Deg => format!("{:11.6}", value),
-                        CoordUnits::DMS => {
-                            format!("{:>11}", value)
-                        }
-                        CoordUnits::Meters | CoordUnits::Feet => {
-                            format!("{:11.3}", value)
-                        }
-                    },
-                }
-            };
-        }
-
         if !self.comment.is_empty() {
             f.write_str(&self.comment)?;
             if !self.comment.ends_with('\n') {
@@ -59,12 +41,11 @@ impl Display for ISG {
                             f.write_char(' ')?;
                         }
 
-                        match column {
-                            None => match self.header.nodata.as_ref() {
-                                None => panic!("empty data found, but `nodata` of header is empty"),
-                                Some(v) => write!(f, "{:10.4}", v)?,
-                            },
-                            Some(v) => write!(f, "{:10.4}", v)?,
+                        match (column, self.header.nodata.as_ref()) {
+                            (None, None) => {
+                                panic!("empty data found, but `nodata` of header is empty")
+                            }
+                            (Some(v), _) | (None, Some(v)) => write!(f, "{:10.4}", v)?,
                         }
 
                         first = false;
@@ -74,14 +55,14 @@ impl Display for ISG {
                 }
             }
             Data::Sparse(data) => {
-                for row in data {
-                    f.write_str(&fmt_angle!(&row.0, &self.header.coord_units))?;
+                for (a, b, c) in data {
+                    f.write_str(&a._to_string(&self.header.coord_units))?;
                     f.write_char(' ')?;
 
-                    f.write_str(&fmt_angle!(&row.1, &self.header.coord_units))?;
+                    f.write_str(&b._to_string(&self.header.coord_units))?;
                     f.write_char(' ')?;
 
-                    write!(f, "{:10.4}", row.2)?;
+                    write!(f, "{:10.4}", c)?;
 
                     f.write_char('\n')?;
                 }
@@ -94,27 +75,6 @@ impl Display for ISG {
 
 impl Display for Header {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        macro_rules! fmt_angle {
-            ($angle:expr) => {
-                match $angle {
-                    Coord::DMS {
-                        degree,
-                        minutes,
-                        second,
-                    } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
-                    Coord::Dec(value) => match &self.coord_units {
-                        CoordUnits::Deg => format!("{:11.6}", value),
-                        CoordUnits::DMS => {
-                            format!("{:>11}", value)
-                        }
-                        CoordUnits::Meters | CoordUnits::Feet => {
-                            format!("{:11.3}", value)
-                        }
-                    },
-                }
-            };
-        }
-
         f.write_str("model name     : ")?;
         match self.model_name.as_ref() {
             None => f.write_str("---")?,
@@ -220,21 +180,24 @@ impl Display for Header {
                 delta_lat,
                 delta_lon,
             } => {
-                write!(
-                    f,
-                    "lat min        = {}
-lat max        = {}
-lon min        = {}
-lon max        = {}
-delta lat      = {}
-delta lon      = {}\n",
-                    fmt_angle!(lat_min),
-                    fmt_angle!(lat_max),
-                    fmt_angle!(lon_min),
-                    fmt_angle!(lon_max),
-                    fmt_angle!(delta_lat),
-                    fmt_angle!(delta_lon),
-                )?;
+                f.write_str("lat min        = ")?;
+                f.write_str(&lat_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lat max        = ")?;
+                f.write_str(&lat_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lon min        = ")?;
+                f.write_str(&lon_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lon max        = ")?;
+                f.write_str(&lon_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta lat      = ")?;
+                f.write_str(&delta_lat._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta lon      = ")?;
+                f.write_str(&delta_lon._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
             }
             DataBounds::GridProjected {
                 north_min,
@@ -244,21 +207,24 @@ delta lon      = {}\n",
                 delta_north,
                 delta_east,
             } => {
-                write!(
-                    f,
-                    "north min        = {}
-north max        = {}
-east min        = {}
-east max        = {}
-delta north      = {}
-delta east      = {}\n",
-                    fmt_angle!(north_min),
-                    fmt_angle!(north_max),
-                    fmt_angle!(east_min),
-                    fmt_angle!(east_max),
-                    fmt_angle!(delta_north),
-                    fmt_angle!(delta_east),
-                )?;
+                f.write_str("north min      = ")?;
+                f.write_str(&north_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("north max      = ")?;
+                f.write_str(&north_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("east min       = ")?;
+                f.write_str(&east_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("east max       = ")?;
+                f.write_str(&east_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta north    = ")?;
+                f.write_str(&delta_north._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta east     = ")?;
+                f.write_str(&delta_east._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
             }
             DataBounds::SparseGeodetic {
                 lat_min,
@@ -266,19 +232,20 @@ delta east      = {}\n",
                 lon_min,
                 lon_max,
             } => {
-                write!(
-                    f,
-                    "lat min        = {}
-lat max        = {}
-lon min        = {}
-lon max        = {}
-delta lat      = ---
-delta lon      = ---\n",
-                    fmt_angle!(lat_min),
-                    fmt_angle!(lat_max),
-                    fmt_angle!(lon_min),
-                    fmt_angle!(lon_max),
-                )?;
+                f.write_str("lat min        = ")?;
+                f.write_str(&lat_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lat max        = ")?;
+                f.write_str(&lat_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lon min        = ")?;
+                f.write_str(&lon_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("lon max        = ")?;
+                f.write_str(&lon_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta lat      = ---\n")?;
+                f.write_str("delta lon      = ---\n")?;
             }
             DataBounds::SparseProjected {
                 north_min,
@@ -286,19 +253,20 @@ delta lon      = ---\n",
                 east_min,
                 east_max,
             } => {
-                write!(
-                    f,
-                    "north min        = {}
-north max        = {}
-east min        = {}
-east max        = {}
-delta north      = ---
-delta east      = ---\n",
-                    fmt_angle!(north_min),
-                    fmt_angle!(north_max),
-                    fmt_angle!(east_min),
-                    fmt_angle!(east_max),
-                )?;
+                f.write_str("north min      = ")?;
+                f.write_str(&north_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("north max      = ")?;
+                f.write_str(&north_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("east min       = ")?;
+                f.write_str(&east_min._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("east max       = ")?;
+                f.write_str(&east_max._to_string(&self.coord_units))?;
+                f.write_char('\n')?;
+                f.write_str("delta north    = ---\n")?;
+                f.write_str("delta east     = ---\n")?;
             }
         }
 
@@ -321,7 +289,7 @@ delta east      = ---\n",
         match self.creation_date.as_ref() {
             None => f.write_str("---")?,
             Some(v) => {
-                let s = format!("{}/{:02}/{:02}", v.day, v.month, v.year);
+                let s = format!("{:02}/{:02}/{:04}", v.day, v.month, v.year);
                 write!(f, "{:>11}", s)?
             }
         }
@@ -448,5 +416,36 @@ impl Display for Coord {
             Coord::Dec(value) => value.to_string(),
         };
         f.pad(&s)
+    }
+}
+
+impl Coord {
+    #[inline]
+    fn _to_string(&self, coord_units: &CoordUnits) -> String {
+        // Should be like the following code...?
+        //
+        // match (self, coord_units) {
+        //     (Self::DMS { .. }, CoordUnits::DMS) => todo!(),
+        //     (Self::Dec { .. }, CoordUnits::Deg) => todo!(),
+        //     (Self::Dec { .. }, CoordUnits::Meters | CoordUnits::Feet) => todo!(),
+        //     _ => panic!()
+        // }
+
+        match self {
+            Self::DMS {
+                degree,
+                minutes,
+                second,
+            } => format!("{:>4}°{:02}'{:02}\"", degree, minutes, second),
+            Self::Dec(value) => match coord_units {
+                CoordUnits::Deg => format!("{:11.6}", value),
+                CoordUnits::DMS => {
+                    format!("{:>11}", value)
+                }
+                CoordUnits::Meters | CoordUnits::Feet => {
+                    format!("{:11.3}", value)
+                }
+            },
+        }
     }
 }
