@@ -434,6 +434,7 @@ pub(crate) enum ValidationErrorKind {
         ncols: usize,
         actual: Option<usize>,
     },
+    ISGFormat,
 }
 
 impl ValidationError {
@@ -463,9 +464,15 @@ impl ValidationError {
     pub(crate) fn nrows(nrows: usize, actual: usize) -> Self {
         Self::new(ValidationErrorKind::NoRow { nrows, actual })
     }
+
     #[cold]
     pub(crate) fn ncols(ncols: usize, actual: Option<usize>) -> Self {
         Self::new(ValidationErrorKind::NoCols { ncols, actual })
+    }
+
+    #[cold]
+    pub(crate) fn isg_format() -> Self {
+        Self::new(ValidationErrorKind::ISGFormat)
     }
 }
 
@@ -516,6 +523,7 @@ impl Display for ValidationErrorKind {
                     ncols, a
                 ),
             },
+            Self::ISGFormat => f.write_str("invalid `ISG format`, expected `\"2.0\"`"),
         }
     }
 }

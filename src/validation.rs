@@ -1,6 +1,6 @@
 use crate::error::ValidationError;
 use crate::parse::HeaderField;
-use crate::{Coord, CoordType, CoordUnits, Data, DataBounds, DataFormat, ISG};
+use crate::{Coord, CoordType, CoordUnits, Data, DataBounds, DataFormat, Header, ISG};
 
 impl ISG {
     /// Return `true` if data if well-formatted
@@ -18,49 +18,63 @@ impl ISG {
     /// - data format of `data_bounds` and data by `coord_units`
     /// - data length by `nrows` and `ncols`
     pub fn validate(&self) -> Result<(), ValidationError> {
-        match (&self.header.data_format, &self.header.coord_type) {
+        self.header.validate()?;
+        self.data.validate(&self.header)?;
+
+        Ok(())
+    }
+}
+
+impl Header {
+    #[inline]
+    fn validate(&self) -> Result<(), ValidationError> {
+        if self.ISG_format != "2.0" {
+            return Err(ValidationError::isg_format());
+        }
+
+        match (&self.data_format, &self.coord_type) {
             (DataFormat::Grid, CoordType::Geodetic) => {
-                if !matches!(&self.header.data_bounds, DataBounds::GridGeodetic { .. }) {
+                if !matches!(&self.data_bounds, DataBounds::GridGeodetic { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format,
-                        self.header.coord_type,
+                        self.data_format,
+                        self.coord_type,
                     ));
                 }
             }
             (DataFormat::Grid, CoordType::Projected) => {
-                if !matches!(&self.header.data_bounds, DataBounds::GridProjected { .. }) {
+                if !matches!(&self.data_bounds, DataBounds::GridProjected { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format,
-                        self.header.coord_type,
+                        self.data_format,
+                        self.coord_type,
                     ));
                 }
             }
             (DataFormat::Sparse, CoordType::Geodetic) => {
-                if !matches!(&self.header.data_bounds, DataBounds::SparseGeodetic { .. }) {
+                if !matches!(&self.data_bounds, DataBounds::SparseGeodetic { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format,
-                        self.header.coord_type,
+                        self.data_format,
+                        self.coord_type,
                     ));
                 }
             }
             (DataFormat::Sparse, CoordType::Projected) => {
-                if !matches!(&self.header.data_bounds, DataBounds::SparseProjected { .. }) {
+                if !matches!(&self.data_bounds, DataBounds::SparseProjected { .. }) {
                     return Err(ValidationError::data_bounds(
-                        self.header.data_format,
-                        self.header.coord_type,
+                        self.data_format,
+                        self.coord_type,
                     ));
                 }
             }
         };
 
-        let is_valid_coord = match &self.header.coord_units {
+        let is_valid_coord = match &self.coord_units {
             CoordUnits::DMS => |a: &Coord| matches!(a, Coord::DMS { .. }),
             CoordUnits::Deg | CoordUnits::Meters | CoordUnits::Feet => {
                 |a: &Coord| matches!(a, Coord::Dec { .. })
             }
         };
 
-        match &self.header.data_bounds {
+        match &self.data_bounds {
             DataBounds::GridGeodetic {
                 lat_min,
                 lat_max,
@@ -139,25 +153,39 @@ impl ISG {
             }
         };
 
-        match &self.data {
+        Ok(())
+    }
+}
+
+impl Data {
+    #[inline]
+    fn validate(&self, header: &Header) -> Result<(), ValidationError> {
+        let is_valid_coord = match &header.coord_units {
+            CoordUnits::DMS => |a: &Coord| matches!(a, Coord::DMS { .. }),
+            CoordUnits::Deg | CoordUnits::Meters | CoordUnits::Feet => {
+                |a: &Coord| matches!(a, Coord::Dec { .. })
+            }
+        };
+
+        match &self {
             Data::Grid(data) => {
-                if data.len() != self.header.nrows {
-                    return Err(ValidationError::nrows(self.header.nrows, data.len()));
+                if data.len() != header.nrows {
+                    return Err(ValidationError::nrows(header.nrows, data.len()));
                 }
 
                 for row in data {
-                    if row.len() != self.header.ncols {
-                        return Err(ValidationError::ncols(self.header.ncols, Some(row.len())));
+                    if row.len() != header.ncols {
+                        return Err(ValidationError::ncols(header.ncols, Some(row.len())));
                     }
                 }
             }
             Data::Sparse(data) => {
-                if data.len() != self.header.nrows {
-                    return Err(ValidationError::nrows(self.header.nrows, data.len()));
+                if data.len() != header.nrows {
+                    return Err(ValidationError::nrows(header.nrows, data.len()));
                 }
 
-                if 3 != self.header.ncols {
-                    return Err(ValidationError::ncols(self.header.ncols, None));
+                if 3 != header.ncols {
+                    return Err(ValidationError::ncols(header.ncols, None));
                 }
 
                 for (lineno, row) in data.iter().enumerate() {
