@@ -177,6 +177,22 @@ pub enum Data {
 }
 
 impl Data {
+    /// Makes [`Data::Grid`].
+    pub fn new_grid(
+        data: impl IntoIterator<Item = impl IntoIterator<Item = impl Into<Option<f64>>>>,
+    ) -> Self {
+        Self::Grid(
+            data.into_iter()
+                .map(|row| row.into_iter().map(Into::into).collect())
+                .collect(),
+        )
+    }
+
+    /// Makes [`Data::Sparse`].
+    pub fn new_sparse(data: impl IntoIterator<Item = impl Into<(Coord, Coord, f64)>>) -> Self {
+        Self::Sparse(data.into_iter().map(Into::into).collect())
+    }
+
     /// Returns data of [`Data::Grid`].
     ///
     /// # Safety

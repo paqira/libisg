@@ -1,5 +1,9 @@
 # Change Log
 
+## vX.X.X - XXXX-XX-XX
+
+- Add `Data::new_grid` and `Data::new_sparse`
+
 ## v0.2.4 - 2024-08-01
 
 - Add support trailing spaces on data
