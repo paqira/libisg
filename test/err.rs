@@ -107,6 +107,154 @@ end_of_head =================================================="##;
 }
 
 #[test]
+fn empty_header_key_1() {
+    let s = r##"begin_of_head ================================================
+: EXAMPLE
+model year     : 2020
+model type     : gravimetric
+data type      : geoid
+data units     : meters
+data format    : grid
+data ordering  : N-to-S, W-to-E
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : dms
+map projection : ---
+EPSG code      : 7912
+lat min        =   39°50'00"
+lat max        =   41°10'00"
+lon min        =  119°50'00"
+lon max        =  121°50'00"
+delta lat      =    0°20'00"
+delta lon      =    0°20'00"
+nrows          =           4
+ncols          =           6
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head =================================================="##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "unknown header key: `` (line: 2, column: 0 to 0)"
+    );
+}
+
+#[test]
+fn empty_header_key_2() {
+    let s = r##"begin_of_head ================================================
+               : EXAMPLE
+model year     : 2020
+model type     : gravimetric
+data type      : geoid
+data units     : meters
+data format    : grid
+data ordering  : N-to-S, W-to-E
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : dms
+map projection : ---
+EPSG code      : 7912
+lat min        =   39°50'00"
+lat max        =   41°10'00"
+lon min        =  119°50'00"
+lon max        =  121°50'00"
+delta lat      =    0°20'00"
+delta lon      =    0°20'00"
+nrows          =           4
+ncols          =           6
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head =================================================="##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "unknown header key: `               ` (line: 2, column: 0 to 15)"
+    );
+}
+
+#[test]
+fn empty_header_value_1() {
+    let s = r##"begin_of_head ================================================
+model name     : EXAMPLE
+model year     : 2020
+model type     :
+data type      : geoid
+data units     : meters
+data format    : grid
+data ordering  : N-to-S, W-to-E
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : dms
+map projection : ---
+EPSG code      : 7912
+lat min        =   39°50'00"
+lat max        =   41°10'00"
+lon min        =  119°50'00"
+lon max        =  121°50'00"
+delta lat      =    0°20'00"
+delta lon      =    0°20'00"
+nrows          =           4
+ncols          =           6
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head =================================================="##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "unexpected value: `` on `model type` (line: 4, column: 16 to 16)"
+    );
+}
+
+#[test]
+fn empty_header_value_2() {
+    let s = r##"begin_of_head ================================================
+model name     : EXAMPLE
+model year     : 2020
+model type     :   
+data type      : geoid
+data units     : meters
+data format    : grid
+data ordering  : N-to-S, W-to-E
+ref ellipsoid  : GRS80
+ref frame      : ITRF2014
+height datum   : ---
+tide system    : mean-tide
+coord type     : geodetic
+coord units    : dms
+map projection : ---
+EPSG code      : 7912
+lat min        =   39°50'00"
+lat max        =   41°10'00"
+lon min        =  119°50'00"
+lon max        =  121°50'00"
+delta lat      =    0°20'00"
+delta lon      =    0°20'00"
+nrows          =           4
+ncols          =           6
+nodata         =  -9999.0000
+creation date  =  31/05/2020
+ISG format     =         2.0
+end_of_head =================================================="##;
+    let a = from_str(s);
+    assert_eq!(
+        a.unwrap_err().to_string(),
+        "unexpected value: `   ` on `model type` (line: 4, column: 16 to 19)"
+    );
+}
+
+#[test]
 fn invalid_header_key() {
     let s = r##"begin_of_head ================================================
  X:EXAMPLE

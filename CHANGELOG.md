@@ -3,6 +3,7 @@
 ## vX.X.X - XXXX-XX-XX
 
 - Add `Data::new_grid` and `Data::new_sparse`
+- Fix parsing empty key and value of header
 
 ## v0.2.4 - 2024-08-01
 

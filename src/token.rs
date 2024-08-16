@@ -202,13 +202,24 @@ impl<'a> Tokenizer<'a> {
                 match line.find([':', '=']) {
                     None => Err(ParseError::missing_sep(0..line.len(), lineno + 1)),
                     Some(pos) => {
-                        let start = line[0..pos].find(|c| c != ' ').unwrap();
-                        let end = line[0..pos].rfind(|c| c != ' ').unwrap();
-                        let key = Token {
-                            kind: TokenKind::Key,
-                            value: line[0..pos].trim().into(),
-                            span: start..(end + 1),
-                            lineno: lineno + 1,
+                        // pass whole str until the separator
+                        // when the key is empty str
+                        let key = match (
+                            line[0..pos].find(|c| c != ' '),
+                            line[0..pos].rfind(|c| c != ' '),
+                        ) {
+                            (Some(start), Some(end)) => Token {
+                                kind: TokenKind::Key,
+                                value: line[0..pos].trim().into(),
+                                span: start..(end + 1),
+                                lineno: lineno + 1,
+                            },
+                            _ => Token {
+                                kind: TokenKind::Key,
+                                value: line[0..pos].into(),
+                                span: 0..pos,
+                                lineno: lineno + 1,
+                            },
                         };
 
                         let sep = Token {
@@ -218,13 +229,24 @@ impl<'a> Tokenizer<'a> {
                             lineno: lineno + 1,
                         };
 
-                        let start = line[(pos + 1)..].find(|c| c != ' ').unwrap();
-                        let end = line[(pos + 1)..].rfind(|c| c != ' ').unwrap();
-                        let value = Token {
-                            kind: TokenKind::Value,
-                            value: line[(pos + 1)..].trim().into(),
-                            span: (pos + 1 + start)..(pos + 1 + end + 1),
-                            lineno: lineno + 1,
+                        // pass whole str until
+                        // when the value is empty str
+                        let value = match (
+                            line[(pos + 1)..].find(|c| c != ' '),
+                            line[(pos + 1)..].rfind(|c| c != ' '),
+                        ) {
+                            (Some(start), Some(end)) => Token {
+                                kind: TokenKind::Value,
+                                value: line[(pos + 1)..].trim().into(),
+                                span: (pos + 1 + start)..(pos + 1 + end + 1),
+                                lineno: lineno + 1,
+                            },
+                            _ => Token {
+                                kind: TokenKind::Value,
+                                value: line[(pos + 1)..].into(),
+                                span: (pos + 1)..line.len(),
+                                lineno: lineno + 1,
+                            },
                         };
 
                         Ok(Some((key, sep, value)))
