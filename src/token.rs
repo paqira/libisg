@@ -140,7 +140,7 @@ impl<'a> Tokenizer<'a> {
         let mut chars = 0;
         loop {
             // Not consume lines,
-            // For does not consume `begin_of_head` line
+            // because we need to not consume the `begin_of_head` line
             match self.lines.peek() {
                 None => return Err(ParseError::missing_boh()),
                 Some((_, line)) if line.starts_with(BEGIN_OF_HEAD) => {
@@ -154,12 +154,11 @@ impl<'a> Tokenizer<'a> {
                         lineno: 0,
                     });
                 }
-                Some(_) => {
-                    // Valid comment line
-                    // Consume lines here
-                    let (lineno, line) = self.lines.next().unwrap();
-                    self.lineno = lineno;
+                Some((lineno, line)) => {
+                    self.lineno = *lineno;
                     chars += line.len() + 1;
+                    // Actually Consume lines here
+                    let _ = self.lines.next();
                 }
             }
         }
@@ -191,14 +190,12 @@ impl<'a> Tokenizer<'a> {
         &mut self,
     ) -> Result<Option<(Token<'a>, Token<'a>, Token<'a>)>, ParseError> {
         // Not consume lines,
-        // for does not consume `end_of_head` line
+        // because we need to not consume the `end_of_head` line
         match self.lines.peek() {
             None => Err(ParseError::missing_eoh()),
             // Returns `Ok(None)` when header ends
             Some((_, line)) if line.starts_with(END_OF_HEADER) => Ok(None),
-            Some(_) => {
-                // Consume lines here
-                let (lineno, line) = self.lines.next().expect("already checked");
+            Some((lineno, line)) => {
                 match line.find([':', '=']) {
                     None => Err(ParseError::missing_sep(0..line.len(), lineno + 1)),
                     Some(pos) => {
@@ -248,6 +245,9 @@ impl<'a> Tokenizer<'a> {
                                 lineno: lineno + 1,
                             },
                         };
+
+                        // Actually Consume lines here
+                        let _ = self.lines.next();
 
                         Ok(Some((key, sep, value)))
                     }
