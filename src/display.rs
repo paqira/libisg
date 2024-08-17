@@ -300,7 +300,6 @@ impl Display for Header {
 }
 
 impl Display for ModelType {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Gravimetric => "gravimetric",
@@ -312,7 +311,6 @@ impl Display for ModelType {
 }
 
 impl Display for DataType {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Geoid => "geoid",
@@ -323,7 +321,6 @@ impl Display for DataType {
 }
 
 impl Display for DataUnits {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Meters => "meters",
@@ -334,7 +331,6 @@ impl Display for DataUnits {
 }
 
 impl Display for DataFormat {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Grid => "grid",
@@ -345,7 +341,6 @@ impl Display for DataFormat {
 }
 
 impl Display for DataOrdering {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::N2SW2E => "N-to-S, W-to-E",
@@ -359,7 +354,6 @@ impl Display for DataOrdering {
 }
 
 impl Display for TideSystem {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::TideFree => "tide-free",
@@ -371,7 +365,6 @@ impl Display for TideSystem {
 }
 
 impl Display for CoordType {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::Geodetic => "geodetic",
@@ -382,7 +375,6 @@ impl Display for CoordType {
 }
 
 impl Display for CoordUnits {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = match self {
             Self::DMS => "dms",
@@ -395,7 +387,6 @@ impl Display for CoordUnits {
 }
 
 impl Display for CreationDate {
-    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:04}-{:02}-{:02}", self.year, self.month, self.day)
     }
