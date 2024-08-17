@@ -1,5 +1,9 @@
 # Change Log
 
+## vX.X.X - XXXX-XX-XX
+
+- Change the behavior of `to_string` and `Display` impl to unspecified from panic on  when data has `None` even if `nodata` is `None`.
+
 ## v0.2.5 - 2024-08-17
 
 - Add `Data::new_grid` and `Data::new_sparse`

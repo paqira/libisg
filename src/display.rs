@@ -6,18 +6,14 @@ use crate::*;
 ///
 /// This simply calls [`ToString::to_string`] on `sig`.
 ///
-/// # Safety
-///
-/// Panics when data has [`None`] even if `nodata` is [`None`].
+/// Notes, the behavior is unspecified when data has [`None`] even if `nodata` is [`None`].
 #[inline]
 pub fn to_string(isg: &ISG) -> String {
     isg.to_string()
 }
 
 impl Display for ISG {
-    /// # Safety
-    ///
-    /// Panics when data has [`None`] even if `nodata` is [`None`].
+    /// Notes, the behavior is unspecified when data has [`None`] even if `nodata` is [`None`].
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if !self.comment.is_empty() {
             f.write_str(&self.comment)?;
@@ -42,9 +38,9 @@ impl Display for ISG {
                         }
 
                         match (column, self.header.nodata.as_ref()) {
-                            (None, None) => {
-                                panic!("empty data found, but `nodata` of header is empty")
-                            }
+                            // error branch
+                            // nodata is empty even value is None
+                            (None, None) => f.write_str("-9999.9999")?,
                             (Some(v), _) | (None, Some(v)) => write!(f, "{:10.4}", v)?,
                         }
 
