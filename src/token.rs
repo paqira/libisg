@@ -69,13 +69,13 @@ pub(crate) struct Tokenizer<'a> {
 }
 
 #[derive(Debug)]
-pub(crate) struct DataRowIterator<'a> {
+pub(crate) struct DataColumnIterator<'a> {
     line: &'a str,
     lineno: usize,
     pos: usize,
 }
 
-impl<'a> Iterator for DataRowIterator<'a> {
+impl<'a> Iterator for DataColumnIterator<'a> {
     type Item = Token<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -84,14 +84,15 @@ impl<'a> Iterator for DataRowIterator<'a> {
         };
 
         let mut found = false;
-        for (columns, c) in self.line[self.pos..].chars().enumerate() {
+        let slice = &self.line[self.pos..];
+        for (columns, c) in slice.chars().enumerate() {
             match c {
                 ' ' => {
                     if found {
                         let token = Token {
                             kind: TokenKind::Datum,
-                            value: self.line[self.pos..self.pos + columns].trim().into(),
-                            span: self.pos..self.pos + columns,
+                            value: slice[..columns].trim().into(),
+                            span: self.pos..(self.pos + columns),
                             lineno: self.lineno,
                         };
                         self.pos += columns;
@@ -101,6 +102,8 @@ impl<'a> Iterator for DataRowIterator<'a> {
                 _ => found = true,
             }
         }
+
+        // handle the last data column
 
         let pos = self.pos;
         self.pos = self.line.len();
@@ -201,46 +204,47 @@ impl<'a> Tokenizer<'a> {
                     Some(pos) => {
                         // pass whole str until the separator
                         // when the key is empty str
-                        let key = match (
-                            line[0..pos].find(|c| c != ' '),
-                            line[0..pos].rfind(|c| c != ' '),
-                        ) {
+
+                        let slice = &line[0..pos];
+                        let key = match (slice.find(|c| c != ' '), slice.rfind(|c| c != ' ')) {
                             (Some(start), Some(end)) => Token {
                                 kind: TokenKind::Key,
-                                value: line[0..pos].trim().into(),
+                                value: slice.trim().into(),
                                 span: start..(end + 1),
                                 lineno: lineno + 1,
                             },
+                            // case that key is empty str, pass entire str
                             _ => Token {
                                 kind: TokenKind::Key,
-                                value: line[0..pos].into(),
+                                value: slice.into(),
                                 span: 0..pos,
                                 lineno: lineno + 1,
                             },
                         };
 
+                        let slice = &line[pos..(pos + 1)];
                         let sep = Token {
                             kind: TokenKind::Sep,
-                            value: line[pos..(pos + 1)].into(),
+                            value: slice.into(),
                             span: pos..(pos + 1),
                             lineno: lineno + 1,
                         };
 
                         // pass whole str until
                         // when the value is empty str
-                        let value = match (
-                            line[(pos + 1)..].find(|c| c != ' '),
-                            line[(pos + 1)..].rfind(|c| c != ' '),
-                        ) {
+
+                        let slice = &line[(pos + 1)..];
+                        let value = match (slice.find(|c| c != ' '), slice.rfind(|c| c != ' ')) {
                             (Some(start), Some(end)) => Token {
                                 kind: TokenKind::Value,
-                                value: line[(pos + 1)..].trim().into(),
+                                value: slice.trim().into(),
                                 span: (pos + 1 + start)..(pos + 1 + end + 1),
                                 lineno: lineno + 1,
                             },
+                            // case that value is empty str, pass entire str
                             _ => Token {
                                 kind: TokenKind::Value,
-                                value: line[(pos + 1)..].into(),
+                                value: slice.into(),
                                 span: (pos + 1)..line.len(),
                                 lineno: lineno + 1,
                             },
@@ -277,9 +281,9 @@ impl<'a> Tokenizer<'a> {
     }
 
     #[inline]
-    pub(crate) fn tokenize_data(&mut self) -> Option<DataRowIterator> {
+    pub(crate) fn tokenize_data(&mut self) -> Option<DataColumnIterator> {
         // Returns `None` when data ends
-        self.lines.next().map(|(lineno, line)| DataRowIterator {
+        self.lines.next().map(|(lineno, line)| DataColumnIterator {
             line,
             // placeholder
             pos: 0,
